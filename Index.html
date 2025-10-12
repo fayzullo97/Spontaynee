@@ -66,3 +66,71 @@
   <script src="app.js"></script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spontaynee — Telegram Mini App</title>
+
+  <!-- Telegram Web Apps library (required) -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1 id="app-title">Spontaynee</h1>
+      <small id="app-subtitle">Spark playful, meaningful conversations</small>
+    </header>
+
+    <main class="main">
+      <!-- START SCREEN -->
+      <section id="start-screen" class="card">
+        <label for="lang-select" class="label">Language / Til / Язык</label>
+        <select id="lang-select" class="input">
+          <option value="uz">Oʻzbekcha (Uz)</option>
+          <option value="ru">Русский (Ru)</option>
+        </select>
+
+        <p id="greeting" class="muted">Welcome to Spontaynee! Let’s spark some fun conversations.</p>
+
+        <label class="label">Male name / Erkak nomi / Мужское имя</label>
+        <input id="male-name" class="input" type="text" placeholder="Ali" />
+
+        <label class="label">Female name / Ayol nomi / Женское имя</label>
+        <input id="female-name" class="input" type="text" placeholder="Laylo" />
+
+        <button id="start-btn" class="btn primary">Start</button>
+      </section>
+
+      <!-- QUESTION SCREEN -->
+      <section id="question-screen" class="card hidden">
+        <div class="who" id="who-label">For: <strong id="current-player"></strong></div>
+        <div class="question" id="question-text">Question will appear here</div>
+
+        <textarea id="answer-input" class="input textarea" rows="3" placeholder="Type your answer..."></textarea>
+
+        <div id="reaction" class="muted small"></div>
+      </section>
+
+      <!-- SUMMARY SCREEN -->
+      <section id="summary-screen" class="card hidden">
+        <div id="summary-text" class="question"></div>
+        <button id="restart-btn" class="btn primary">Restart</button>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <button id="skip-btn" class="btn secondary">Skip</button>
+        <!-- The Telegram MainButton will be used for Submit / Restart, but we keep an on-page hint -->
+        <span class="hint muted">Use the Telegram main button for Submit / Restart</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 Purpose: help AI agents become productive quickly in this repo — a minimal static web app containing a single HTML entry, a JS file, and CSS.
 
 - Repo layout to know:
-  - `Index.html` — single-page entry (capital I). Treat this as the app's entrypoint.
+  - `index.html` — single-page entry (use lowercase `index.html`; file name casing matters for static hosts)
   - `app.js` — client-side JavaScript. No server code present in the repository.
   - `style.css` — global styling for the page.
 
@@ -15,8 +15,8 @@ Purpose: help AI agents become productive quickly in this repo — a minimal sta
 - Immediate developer workflows (how to run / test locally):
   - No build step required. The simplest ways to preview:
 
-    # Open file in default browser (macOS)
-    open Index.html
+  # Open file in default browser (macOS)
+  open index.html
 
     # Or serve from a simple static server (recommended to avoid CORS / file: issues)
     python3 -m http.server 8000
@@ -33,12 +33,12 @@ Purpose: help AI agents become productive quickly in this repo — a minimal sta
 
 - How to make small, safe edits (guidance for automated code changes):
   - Keep changes minimal and limited to one logical unit per commit.
-  - If you touch `Index.html`, ensure the page still loads in the browser and that `app.js` is referenced correctly.
-  - Don’t change filename casing (e.g., `Index.html` → `index.html`) without confirming — it can confuse contributors on case-sensitive systems.
+  - If you touch `index.html`, ensure the page still loads in the browser and that `app.js` is referenced correctly.
+  - File name casing matters on static hosts. Prefer `index.html` (lowercase) for compatibility.
 
 - Examples (explicit references):
-  - To add a UI widget, edit `Index.html` to add the DOM node, put styling in `style.css`, and wire behavior in `app.js`.
-  - To run the app locally after changes: `python3 -m http.server 8000` and open `http://localhost:8000/Index.html`.
+  - To add a UI widget, edit `index.html` to add the DOM node, put styling in `style.css`, and wire behavior in `app.js`.
+  - To run the app locally after changes: `python3 -m http.server 8000` and open `http://localhost:8000/index.html`.
 
 - Merge & commit etiquette for AI agents:
   - Provide a concise commit message describing the change and why.

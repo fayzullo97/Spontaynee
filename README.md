@@ -4,7 +4,7 @@ Spontaynee is a small Telegram Mini App that asks playful, thought-provoking que
 
 This repository is a static site with three files:
 
-- `Index.html` — app entry (capital I)
+- `index.html` — app entry (use lowercase `index.html` for static hosting compatibility)
 - `style.css` — styling
 - `app.js` — application logic (Telegram Web App integration, language support, question flow)
 
@@ -52,13 +52,13 @@ Replace `YourBot` with your bot's username (without `@`).
 
 ---
 
-## Local testing
+# Local testing
 
 To preview locally (no Telegram features like MainButton or Haptic):
 
 ```bash
 python3 -m http.server 8000
-# then open http://localhost:8000/Index.html
+# then open http://localhost:8000/index.html
 ```
 
 The Telegram Web App features (MainButton, BackButton, haptics) will only work inside the Telegram client.
