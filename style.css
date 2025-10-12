@@ -42,6 +42,7 @@ body{
 }
 
 .header{
+  /* Centered header */
   text-align:center;
   margin-bottom:12px;
   height:10vh;
@@ -50,7 +51,7 @@ body{
   justify-content:center;
 }
 
-.header-inner h1{ margin:0; font-size:20px; font-weight:700; }
+.header h1, .header-inner h1{ margin:0; font-size:22px; font-weight:700; color:var(--deep-blue); text-align:center; }
 .tagline{ color:var(--tg-theme-hint-color); font-size:14px; margin-top:4px; }
 
 .card{
@@ -83,7 +84,22 @@ body{
 
 /* Placeholder and select contrast */
 .input::placeholder{ color:var(--dark-gray); }
-select.input{ color:var(--input-text-color, var(--deep-blue)); }
+select.input{
+  /* Dropdown background light gray and selected text dark blue */
+  background: #f3f4f6; /* light gray */
+  color: var(--deep-blue);
+  appearance: none;
+  -webkit-appearance: none; /* remove native arrow styling on iOS/Android Chrome */
+}
+
+/* Force option text color (some browsers ignore color on select, this helps where supported) */
+select.input option{ color:var(--deep-blue); background:#f3f4f6; }
+
+/* Placeholder color for inputs */
+.input::placeholder{ color:#9CA3AF; /* light gray placeholder */ }
+
+/* Input typed text color should be dark blue */
+.input{ color:var(--deep-blue); }
 
 .textarea{ resize:vertical; min-height:96px; font-family: 'Noto Serif', serif; font-size:14px; }
 
