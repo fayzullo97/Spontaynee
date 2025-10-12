@@ -17,6 +17,7 @@
 
   --sp-padding: 16px;
   --sp-gap: 8px;
+  --input-text-color: var(--deep-blue);
 }
 
 *{box-sizing:border-box;font-family: 'Noto Sans', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
@@ -76,8 +77,13 @@ body{
   font-size:16px;
   outline:none;
   background:var(--white);
-  color:var(--tg-theme-text-color);
+  /* Inputs should use a high-contrast color regardless of Telegram theme colors */
+  color:var(--input-text-color, var(--deep-blue));
 }
+
+/* Placeholder and select contrast */
+.input::placeholder{ color:var(--dark-gray); }
+select.input{ color:var(--input-text-color, var(--deep-blue)); }
 
 .textarea{ resize:vertical; min-height:96px; font-family: 'Noto Serif', serif; font-size:14px; }
 

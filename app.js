@@ -34,6 +34,16 @@ function applyTheme() {
   // adapt card background for contrast
   const darkBg = ['#000000','#000','##000000'].includes((p.bg_color || '').toLowerCase());
   doc.setProperty('--card-bg', darkBg ? '#111827' : '#FFFFFF');
+  // Map theme text color to input text color, but ensure good contrast: if text_color is very light, use deep-blue fallback
+  if (p.text_color){
+    const tc = p.text_color.trim().toLowerCase();
+    // simple contrast heuristic: if text color is white-ish, fallback to deep-blue for inputs
+    if (tc === '#ffffff' || tc === 'white' || tc === '#fff'){
+      doc.setProperty('--input-text-color', '#1E3A8A');
+    } else {
+      doc.setProperty('--input-text-color', p.text_color);
+    }
+  }
 }
 applyTheme();
 
@@ -215,6 +225,16 @@ function updateMainButtonState(){
       try { tg.MainButton.disable(); } catch(e) {}
     }
   });
+
+  // Fallback: on-page start button for non-Telegram environments or when MainButton is hidden.
+  // Ensure it's visible and enabled when both names are present.
+  if (!tg){
+    startBtn.style.display = enabled ? 'inline-block' : 'none';
+    startBtn.disabled = !enabled;
+  } else {
+    // When tg exists but MainButton may be hidden (e.g., theme reasons), keep on-page Start as lower-priority fallback
+    startBtn.style.display = 'none';
+  }
 }
 
 // wire input events to update MainButton
@@ -302,7 +322,12 @@ function showQuestion(){
   });
 
   // For non-Telegram browser testing, also enable the on-page start/submit button as fallback
-  startBtn.style.display = 'none';
+  if (!tg) {
+    startBtn.style.display = 'inline-block';
+    startBtn.disabled = false;
+  } else {
+    startBtn.style.display = 'none';
+  }
 }
 
 // Called when user submits an answer
@@ -425,6 +450,8 @@ startBtn.addEventListener('click', () => {
   // Start the Q&A flow
   // Hide start screen and begin
   safeCall(() => { if (tg) tg.MainButton.hide(); });
+  // Ensure on-page button is disabled to avoid double starts
+  startBtn.disabled = true;
   startApp();
 });
 
