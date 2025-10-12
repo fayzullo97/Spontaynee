@@ -7,7 +7,6 @@
 const tg = window.Telegram?.WebApp || null;
 
 if (!tg) {
-  // If Telegram object is not available we still continue so the app can be tested in a browser.
   console.warn('Telegram WebApp API not found. Some features (MainButton, Haptics) will be disabled for local testing.');
 }
 
@@ -15,10 +14,8 @@ if (!tg) {
 const safeCall = (fn) => { try { if (fn) fn(); } catch (e) { console.warn(e); } };
 
 if (tg) {
-  // Inform Telegram that the web app is ready
+  // Inform Telegram that the web app is ready and expand for better UX
   safeCall(() => tg.ready());
-
-  // Expand the Web App interface to provide more space
   safeCall(() => tg.expand());
 }
 
@@ -34,13 +31,14 @@ function applyTheme() {
   if (p.text_color) doc.setProperty('--tg-theme-text-color', p.text_color);
   // card background: slightly different on dark themes
   // keep simple fallback
-  doc.setProperty('--card-bg', p.bg_color === '#000000' ? '#111827' : '#f8fafc');
+  // adapt card background for contrast
+  const darkBg = ['#000000','#000','##000000'].includes((p.bg_color || '').toLowerCase());
+  doc.setProperty('--card-bg', darkBg ? '#111827' : '#FFFFFF');
 }
 applyTheme();
 
 // === Translations & Questions ===
-// Minimal translation object containing UI strings and two lists of 10 questions per player.
-// Keep texts simple and playful.
+// Translation object containing UI strings and two lists of 10 questions per player.
 const T = {
   uz: {
     greeting: "Spontaynee ga xush kelibsiz! Keling suhbatni qizdiramiz.",
@@ -135,10 +133,19 @@ const whoLabel = document.getElementById('current-player');
 const questionText = document.getElementById('question-text');
 const answerInput = document.getElementById('answer-input');
 const reactionEl = document.getElementById('reaction');
+const progressText = document.getElementById('progress-text');
+const progressFill = document.getElementById('progress-fill');
 
 const skipBtn = document.getElementById('skip-btn');
 const summaryText = document.getElementById('summary-text');
 const restartBtn = document.getElementById('restart-btn');
+
+const confirmModal = document.getElementById('confirm-modal');
+const confirmYes = document.getElementById('confirm-yes');
+const confirmNo = document.getElementById('confirm-no');
+
+const reconnectOverlay = document.getElementById('reconnect');
+const reconnectRetry = document.getElementById('reconnect-retry');
 
 // === State keys in localStorage ===
 const LS = {
@@ -180,14 +187,40 @@ function initUIFromStorage(){
   const f = getFemaleName();
   if (m) maleNameInput.value = m;
   if (f) femaleNameInput.value = f;
-
   // set greeting text from translations
   greetingEl.textContent = T[lang].greeting;
   startBtn.textContent = T[lang].startBtn || 'Start';
   skipBtn.textContent = lang === 'ru' ? 'Пропустить' : 'O`tkazib yuborish';
   restartBtn.textContent = T[lang].restartBtn;
+
+  // initial MainButton state: disabled until both names are present
+  updateMainButtonState();
 }
 initUIFromStorage();
+
+// update MainButton enabled state when inputs change
+function updateMainButtonState(){
+  const lang = getLang();
+  const m = maleNameInput.value.trim();
+  const f = femaleNameInput.value.trim();
+  const enabled = m.length > 0 && f.length > 0;
+  safeCall(() => {
+    if (!tg) return;
+    if (enabled){
+      tg.MainButton.setText(T[lang].startBtn || 'Start');
+      tg.MainButton.show();
+      tg.MainButton.enable();
+    } else {
+      tg.MainButton.hide();
+      try { tg.MainButton.disable(); } catch(e) {}
+    }
+  });
+}
+
+// wire input events to update MainButton
+langSelect.addEventListener('change', () => { setLang(langSelect.value); initUIFromStorage(); updateMainButtonState(); });
+maleNameInput.addEventListener('input', updateMainButtonState);
+femaleNameInput.addEventListener('input', updateMainButtonState);
 
 // === Main flow logic ===
 
@@ -235,11 +268,16 @@ function showQuestion(){
 
   // Fill UI
   const name = (player === 'male' ? getMaleName() : getFemaleName()) || (player === 'male' ? T[lang].maleLabel : T[lang].femaleLabel);
-  whoLabel.textContent = `${player === 'male' ? T[lang].maleLabel : T[lang].femaleLabel}: ${name}`;
+  whoLabel.textContent = `${name}'s turn`;
   questionText.textContent = text;
   answerInput.value = '';
   answerInput.placeholder = T[lang].placeholderAnswer;
   reactionEl.textContent = '';
+
+  // progress
+  progressText.textContent = `Question ${idx+1}/20`;
+  const pct = Math.round(((idx)/20)*100);
+  progressFill.style.width = `${pct}%`;
 
   // Setup skip button visible
   safeCall(() => {
@@ -253,6 +291,7 @@ function showQuestion(){
     if (!tg) return;
     tg.MainButton.setText(T[lang].submitBtn);
     tg.MainButton.show();
+    try { tg.MainButton.enable(); } catch(e) {}
     // Remove previous click handlers by reassigning; in some environments onClick stacks, so
     // we try to set a single handler variable:
     if (window._sp_main_click) {
@@ -351,6 +390,13 @@ function showSummary(){
 
 // Restart app by clearing session-specific keys
 function onRestart(){
+  // confirm with modal
+  confirmModal.classList.remove('hidden');
+}
+
+confirmNo.addEventListener('click', () => { confirmModal.classList.add('hidden'); });
+confirmYes.addEventListener('click', () => {
+  confirmModal.classList.add('hidden');
   resetSession();
   setIndex(0);
   initUIFromStorage();
@@ -358,10 +404,9 @@ function onRestart(){
   startScreen.classList.remove('hidden');
   questionScreen.classList.add('hidden');
   summaryScreen.classList.add('hidden');
-
   // Hide Telegram main button until we start again
   safeCall(() => { if (tg) tg.MainButton.hide(); });
-}
+});
 
 // === Event bindings ===
 startBtn.addEventListener('click', () => {
@@ -378,6 +423,8 @@ startBtn.addEventListener('click', () => {
   if (!localStorage.getItem(LS.femaleSkips)) localStorage.setItem(LS.femaleSkips, '0');
 
   // Start the Q&A flow
+  // Hide start screen and begin
+  safeCall(() => { if (tg) tg.MainButton.hide(); });
   startApp();
 });
 
