@@ -1,66 +1,94 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Spontaynee — Telegram Mini App</title>
-
-  <!-- Telegram Web Apps library (required) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Noto+Serif:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
-    <header class="header">
-      <h1 id="app-title">Spontaynee</h1>
-      <small id="app-subtitle">Spark playful, meaningful conversations</small>
+    <header class="header" role="banner">
+      <div class="header-inner">
+        <h1 id="app-title">Spontaynee</h1>
+        <div id="app-subtitle" class="tagline">Spark playful, meaningful conversations</div>
+      </div>
     </header>
 
     <main class="main">
-      <!-- START SCREEN -->
-      <section id="start-screen" class="card">
-        <label for="lang-select" class="label">Language / Til / Язык</label>
-        <select id="lang-select" class="input">
-          <option value="uz">Oʻzbekcha (Uz)</option>
-          <option value="ru">Русский (Ru)</option>
-        </select>
-
+      <!-- ONBOARDING (single screen) -->
+      <section id="start-screen" class="card" aria-labelledby="app-title">
         <p id="greeting" class="muted">Welcome to Spontaynee! Let’s spark some fun conversations.</p>
 
-        <label class="label">Male name / Erkak nomi / Мужское имя</label>
-        <input id="male-name" class="input" type="text" placeholder="Ali" />
+        <label for="lang-select" class="label">Choose language / Tilni tanlang / Выберите язык</label>
+        <select id="lang-select" class="input" aria-label="Language" tabindex="1">
+          <option value="uz">Oʻzbekcha (O‘zbekcha)</option>
+          <option value="ru">Русский (Русский)</option>
+        </select>
 
-        <label class="label">Female name / Ayol nomi / Женское имя</label>
-        <input id="female-name" class="input" type="text" placeholder="Laylo" />
+        <label for="male-name" class="label">Male name / Erkak nomi / Мужское имя</label>
+        <input id="male-name" class="input" type="text" placeholder="Ali" aria-label="Male name" tabindex="2">
 
-        <button id="start-btn" class="btn primary">Start</button>
+        <label for="female-name" class="label">Female name / Ayol nomi / Женское имя</label>
+        <input id="female-name" class="input" type="text" placeholder="Laylo" aria-label="Female name" tabindex="3">
+
+        <div class="hint muted small">When both names are filled the Telegram main button will activate.</div>
+        <button id="start-btn" class="btn primary" aria-hidden="true" style="display:none">Start</button>
       </section>
 
-      <!-- QUESTION SCREEN -->
-      <section id="question-screen" class="card hidden">
+      <!-- QUESTION SCREEN (hidden until start) -->
+      <section id="question-screen" class="card hidden" aria-live="polite">
         <div class="who" id="who-label">For: <strong id="current-player"></strong></div>
         <div class="question" id="question-text">Question will appear here</div>
 
-        <textarea id="answer-input" class="input textarea" rows="3" placeholder="Type your answer..."></textarea>
+        <div class="progress-row">
+          <div id="progress-text" class="muted small">Question 1/20</div>
+          <div class="progress-bar" aria-hidden="true">
+            <div id="progress-fill" class="progress-fill" style="width:0%"></div>
+          </div>
+        </div>
 
-        <div id="reaction" class="muted small"></div>
+        <textarea id="answer-input" class="input textarea" rows="3" placeholder="Type your answer..." aria-label="Answer input"></textarea>
+        <div id="reaction" class="muted small ai-response" aria-live="polite"></div>
       </section>
 
       <!-- SUMMARY SCREEN -->
-      <section id="summary-screen" class="card hidden">
+      <section id="summary-screen" class="card hidden" aria-live="polite">
         <div id="summary-text" class="question"></div>
         <button id="restart-btn" class="btn primary">Restart</button>
       </section>
     </main>
 
-    <footer class="footer">
+    <footer class="footer" role="contentinfo">
       <div class="footer-inner">
-        <button id="skip-btn" class="btn secondary">Skip</button>
-        <!-- The Telegram MainButton will be used for Submit / Restart, but we keep an on-page hint -->
-        <span class="hint muted">Use the Telegram main button for Submit / Restart</span>
+        <button id="skip-btn" class="btn secondary" aria-label="Skip">Skip</button>
+        <div class="footer-hint">
+          <span class="hint muted">Use the Telegram main button for Submit / Restart</span>
+        </div>
       </div>
     </footer>
+
+    <!-- Restart confirmation modal (simple) -->
+    <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-card">
+        <h3 id="confirm-title">Ready to start over?</h3>
+        <div class="modal-actions">
+          <button id="confirm-no" class="btn secondary">No</button>
+          <button id="confirm-yes" class="btn primary">Yes, restart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reconnect overlay -->
+    <div id="reconnect" class="overlay hidden" role="alertdialog" aria-live="assertive">
+      <div class="overlay-card">
+        <div class="muted">Reconnecting...</div>
+        <button id="reconnect-retry" class="btn primary">Retry</button>
+      </div>
+    </div>
+
   </div>
 
   <script src="app.js"></script>
