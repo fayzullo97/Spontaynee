@@ -17,10 +17,18 @@ const PORT = process.env.PORT || 3000;
 // and avoids CORS when the frontend calls /api/whisper.
 app.use(express.static(path.join(__dirname)));
 
+// Simple health endpoint to check server readiness
+app.get('/health', (req, res) => {
+  const ok = !!process.env.OPENAI_API_KEY;
+  res.json({ ok, hasApiKey: ok });
+});
+
 // POST /api/whisper - accepts multipart/form-data with 'audio' field
 app.post('/api/whisper', upload.single('audio'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).send('No audio file uploaded');
+
+    console.log('[whisper] Received upload:', { filename: req.file.originalname, size: req.file.size });
 
     // Read file to buffer
     const audioPath = path.resolve(req.file.path);
@@ -48,10 +56,13 @@ app.post('/api/whisper', upload.single('audio'), async (req, res) => {
 
     if (!response.ok) {
       const text = await response.text();
-      return res.status(502).send(text);
+      console.error('[whisper] OpenAI returned non-200:', response.status, text);
+      // Return a structured error that the frontend can parse
+      return res.status(502).json({ error: { status: response.status, body: text } });
     }
 
     const data = await response.json();
+    console.log('[whisper] OpenAI response:', { length: JSON.stringify(data).length });
 
     // Clean up uploaded file
     fs.unlink(audioPath, () => {});
@@ -59,8 +70,8 @@ app.post('/api/whisper', upload.single('audio'), async (req, res) => {
     // Whisper returns { text: '...' }
     res.json({ text: data.text });
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+    console.error('[whisper] Server error:', err && err.stack ? err.stack : err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
