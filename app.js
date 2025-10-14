@@ -161,8 +161,47 @@ if (fallbackStartBtn) {
 
 // If Telegram's MainButton is available, hide the fallback start to avoid UI confusion
 try {
-  if (tg && tg.MainButton) {
+  // Only hide the fallback start button when the Web App is actually
+  // opened inside Telegram. Some browsers may load the Telegram script
+  // but not run inside the Telegram client, so we make the check stricter:
+  // - initData must be a non-empty string OR
+  // - initDataUnsafe must be an object with keys
+  // Otherwise we assume we're in a normal browser and show the fallback.
+  let inTelegram = false;
+  try {
+    if (tg) {
+      if (typeof tg.initData === 'string' && tg.initData.trim().length > 0) inTelegram = true;
+      else if (tg.initDataUnsafe && typeof tg.initDataUnsafe === 'object' && Object.keys(tg.initDataUnsafe).length > 0) inTelegram = true;
+      // earlier fallback: if Telegram provides other detection helpers, treat as inside
+      else if (typeof tg.isVersion === 'function') inTelegram = true;
+    }
+  } catch (e) {
+    inTelegram = false;
+  }
+
+  if (inTelegram) {
     if (fallbackStartBtn) fallbackStartBtn.style.display = 'none';
+  } else {
+    // Show fallback in normal browsers
+    if (fallbackStartBtn) fallbackStartBtn.style.display = 'inline-block';
+  }
+
+  // Setup fallback Next button (when Telegram MainButton isn't used)
+  const fallbackNextBtn = document.getElementById('fallback-next');
+  if (fallbackNextBtn) {
+    fallbackNextBtn.addEventListener('click', () => {
+      if (screens.setup.classList.contains('screen--visible')) handleNameSubmit();
+    });
+    if (inTelegram) fallbackNextBtn.style.display = 'none';
+  }
+
+  // Game fallback Submit button
+  const fallbackSubmitBtn = document.getElementById('fallback-submit');
+  if (fallbackSubmitBtn) {
+    fallbackSubmitBtn.addEventListener('click', () => {
+      if (screens.game.classList.contains('screen--visible')) handleAnswerSubmit();
+    });
+    if (inTelegram) fallbackSubmitBtn.style.display = 'none';
   }
 } catch (e) {
   // tg may be undefined in non-Telegram environments; ignore
