@@ -465,7 +465,9 @@ async function handleSpeakClick() {
           // The server expects field name 'audio'
           form.append('audio', audioBlob, 'speech.webm');
 
-          const resp = await fetch('/api/whisper', {
+          // Send explicit language hint to the server (uz for Uzbek).
+          // This ensures the server forwards the correct language parameter to Whisper.
+          const resp = await fetch('/api/whisper?lang=uz', {
             method: 'POST',
             body: form
           });
