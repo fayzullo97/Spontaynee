@@ -63,6 +63,34 @@ const answerInput = document.getElementById('answer-input');
 const speakBtn = document.getElementById('speak-btn');
 const aiReplyEl = document.getElementById('ai-reply');
 
+// A small helper element to show live transcription state (we reuse aiReplyEl
+// for accessibility but keep a small helper API below to format messages).
+
+function setTranscriptUI(state, text) {
+  // state: 'idle' | 'recording' | 'uploading' | 'ready' | 'error'
+  switch (state) {
+    case 'recording':
+      aiReplyEl.style.opacity = '1';
+      aiReplyEl.textContent = 'Yozilmoqda… Iltimos gapiring.'; // Uzbek
+      break;
+    case 'uploading':
+      aiReplyEl.style.opacity = '0.95';
+      aiReplyEl.textContent = 'Transkript olinmoqda… Iltimos kuting.';
+      break;
+    case 'ready':
+      aiReplyEl.style.opacity = '1';
+      aiReplyEl.textContent = text ? `Transkript: ${text}` : 'Transkript topilmadi.';
+      break;
+    case 'error':
+      aiReplyEl.style.opacity = '1';
+      aiReplyEl.textContent = text || 'Xato: transkriptsiya amalga oshmadi.';
+      break;
+    default:
+      aiReplyEl.style.opacity = '0.9';
+      aiReplyEl.textContent = '';
+  }
+}
+
 const endMessageNames = document.getElementById('end-names');
 
 /* ======= Telegram buttons setup ======= */
@@ -121,6 +149,24 @@ MainButton.onClick(() => {
     handleRestart();
   }
 });
+
+// Fallback in-page start button (for browsers or testing outside Telegram)
+const fallbackStartBtn = document.getElementById('fallback-start');
+if (fallbackStartBtn) {
+  fallbackStartBtn.addEventListener('click', () => {
+    // Mirror what MainButton would do on welcome
+    if (screens.welcome.classList.contains('screen--visible')) startSetup();
+  });
+}
+
+// If Telegram's MainButton is available, hide the fallback start to avoid UI confusion
+try {
+  if (tg && tg.MainButton) {
+    if (fallbackStartBtn) fallbackStartBtn.style.display = 'none';
+  }
+} catch (e) {
+  // tg may be undefined in non-Telegram environments; ignore
+}
 
 /* ======= Setup logic ======= */
 function startSetup() {
@@ -332,9 +378,103 @@ function handleRestart() {
   - Optionally send text to ChatGPT for witty analysis and then to TTS (OpenAI TTS)
 */
 speakBtn.addEventListener('click', () => {
-  // Inform user this is a placeholder
-  alert("Voice input bu yerda bekorchi (placeholder). Whisper va TTS integratsiyasini backend orqali qo‘shing.");
+  // Start a simple in-browser recorder and send audio to the server
+  // This implementation records audio using MediaRecorder, sends it as
+  // multipart/form-data to the backend endpoint `/api/whisper`, and
+  // inserts the returned transcript into the answer input.
+  // NOTE: You must run the example backend (server.js) which forwards
+  // audio to OpenAI Whisper. Do NOT put your OpenAI API key in client-side code.
+  handleSpeakClick();
 });
+
+// Recording state
+let mediaRecorder = null;
+let recordedChunks = [];
+let isRecording = false;
+
+async function handleSpeakClick() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Mikrofonga kirish mavjud emas. Iltimos zamonaviy brauzer ishlating.');
+    return;
+  }
+
+  // Toggle recording on/off
+  if (!isRecording) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      mediaRecorder.addEventListener('dataavailable', (e) => {
+        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+      });
+
+      mediaRecorder.addEventListener('stop', async () => {
+        // Stop tracks
+        stream.getTracks().forEach(t => t.stop());
+
+        // Build a Blob from recorded chunks
+        const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+
+        // UI: show uploading
+        setTranscriptUI('uploading');
+        speakBtn.disabled = true;
+        speakBtn.textContent = 'Yuklanmoqda...';
+
+        try {
+          const form = new FormData();
+          // The server expects field name 'audio'
+          form.append('audio', audioBlob, 'speech.webm');
+
+          const resp = await fetch('/api/whisper', {
+            method: 'POST',
+            body: form
+          });
+
+          if (!resp.ok) {
+            const txt = await resp.text();
+            throw new Error(txt || 'Server transcription xatosi');
+          }
+
+          const data = await resp.json();
+
+          // The backend returns an object with the transcription text.
+          // For OpenAI Whisper the shape is typically { text: '...' }
+          const transcript = (data && (data.text || data.transcript)) || '';
+          if (transcript) {
+            // Insert transcript into the answer input so user can edit before submit
+            answerInput.value = transcript;
+            setTranscriptUI('ready', transcript);
+            // Focus answer input so user can continue quickly
+            answerInput.focus();
+          } else {
+            setTranscriptUI('ready', '');
+          }
+        } catch (err) {
+          console.error('Whisper API error:', err);
+          setTranscriptUI('error', 'Xato: audioni transkriptsiya qilish mumkin emas.');
+        } finally {
+          speakBtn.disabled = false;
+          speakBtn.textContent = 'Speak (mikrofon)';
+        }
+      });
+
+      mediaRecorder.start();
+      isRecording = true;
+      speakBtn.textContent = 'To\'xtatish';
+      speakBtn.setAttribute('aria-pressed', 'true');
+    } catch (err) {
+      console.error('getUserMedia error', err);
+      alert('Mikrofonga ruxsat berilmadi yoki xato yuz berdi.');
+    }
+  } else {
+    // Stop recording
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    isRecording = false;
+    speakBtn.textContent = 'Speak (mikrofon)';
+    speakBtn.setAttribute('aria-pressed', 'false');
+  }
+}
 
 /* ======= Keyboard enter to submit in text areas (accessibility) ======= */
 answerInput.addEventListener('keydown', (e) => {

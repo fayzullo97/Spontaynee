@@ -32,6 +32,11 @@
         <div class="start-circle" aria-hidden="true">
           <span class="start-label">Boshlash</span>
         </div>
+        <!-- In-page fallback start button for environments where Telegram MainButton
+             is not available or not interactive (helps during browser testing) -->
+        <div style="text-align:center; margin-top:16px;">
+          <button id="fallback-start" class="btn" aria-label="Boshlash">Boshlash</button>
+        </div>
       </section>
 
       <!-- Player setup screen -->

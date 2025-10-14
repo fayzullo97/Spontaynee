@@ -78,3 +78,36 @@ rm ~/.ssh/id_ed25519_spontaynee ~/.ssh/id_ed25519_spontaynee.pub
 ---
 
 If you want, I can also deploy the project to Vercel for you (requires Vercel login). Tell me if you want me to attempt a Vercel deploy from this environment and I’ll run the CLI flow.
+
+---
+
+## Whisper proxy server (local development)
+
+This repo now includes a minimal Node/Express proxy `server.js` which accepts audio uploads and forwards them to OpenAI's Whisper transcription endpoint. Use this for local testing of speech-to-text.
+
+Quick steps:
+
+1. Install dependencies:
+
+```bash
+cd /Users/fayzullodavronov/Desktop/Spontaynee
+npm install
+```
+
+2. Set your OpenAI API key and start the server:
+
+```bash
+export OPENAI_API_KEY=your_openai_api_key_here
+npm start
+```
+
+3. Start a static file server for the frontend (if needed):
+
+```bash
+python3 -m http.server 8000
+# open http://localhost:8000/index.html
+```
+
+The frontend `app.js` includes a simple recorder that sends audio to `/api/whisper`. The server will return a JSON object with the transcription in the `text` field.
+
+Security reminder: keep your OpenAI API key on the server only. This server is a demo—add auth, rate limits and HTTPS before using in production.
