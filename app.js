@@ -1,501 +1,363 @@
-// All app logic for Spontaynee (Telegram Mini App)
-// - Simple vanilla JS
-// - Uses Telegram Web App JS API
-// - Stores minimal state in localStorage to persist across reloads
+// ...existing code...
 
-// === Telegram WebApp initialization ===
-const tg = window.Telegram?.WebApp || null;
+/*
+  app.js
+  - Simple, beginner-friendly logic for Spontaynee Telegram Mini App
+  - Uses Telegram Web App JS API: window.Telegram.WebApp
+  - UI text is in Uzbek.
+*/
 
-if (!tg) {
-  console.warn('Telegram WebApp API not found. Some features (MainButton, Haptics) will be disabled for local testing.');
+/* ======= Telegram WebApp init ======= */
+const tg = window.Telegram.WebApp; // Telegram Web App object
+
+// Make the web app ready and expand UI to use full height on mobile.
+tg.ready();          // signal to Telegram that app is ready
+tg.expand();         // ask Telegram to expand web view
+
+// Apply Telegram theme params to CSS variables if present (dark/light)
+if (tg.themeParams) {
+  // Map a few Telegram theme params to CSS variables used in style.css
+  const root = document.documentElement;
+  if (tg.themeParams.bg_color) root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+  if (tg.themeParams.button_color) root.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
+  if (tg.themeParams.text_color) root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
 }
 
-// Helper to safely call a Telegram method if present
-const safeCall = (fn) => { try { if (fn) fn(); } catch (e) { console.warn(e); } };
-
-if (tg) {
-  // Inform Telegram that the web app is ready and expand for better UX
-  safeCall(() => tg.ready());
-  safeCall(() => tg.expand());
-}
-
-// === Theme: copy Telegram theme params into CSS variables ===
-function applyTheme() {
-  if (!tg || !tg.themeParams) return;
-  const p = tg.themeParams;
-  const doc = document.documentElement.style;
-  if (p.bg_color) doc.setProperty('--tg-theme-bg-color', p.bg_color);
-  if (p.hint_color) doc.setProperty('--tg-theme-hint-color', p.hint_color);
-  if (p.button_color) doc.setProperty('--tg-theme-button-color', p.button_color);
-  if (p.button_text_color) doc.setProperty('--tg-theme-button-text-color', p.button_text_color);
-  if (p.text_color) doc.setProperty('--tg-theme-text-color', p.text_color);
-  // card background: slightly different on dark themes
-  // keep simple fallback
-  // adapt card background for contrast
-  const darkBg = ['#000000','#000','##000000'].includes((p.bg_color || '').toLowerCase());
-  doc.setProperty('--card-bg', darkBg ? '#111827' : '#FFFFFF');
-  // Map theme text color to input text color, but ensure good contrast: if text_color is very light, use deep-blue fallback
-  if (p.text_color){
-    const tc = p.text_color.trim().toLowerCase();
-    // simple contrast heuristic: if text color is white-ish, fallback to deep-blue for inputs
-    if (tc === '#ffffff' || tc === 'white' || tc === '#fff'){
-      doc.setProperty('--input-text-color', '#1E3A8A');
-    } else {
-      doc.setProperty('--input-text-color', p.text_color);
-    }
-  }
-}
-applyTheme();
-
-// === Translations & Questions ===
-// Translation object containing UI strings and two lists of 10 questions per player.
-const T = {
-  uz: {
-    greeting: "Spontaynee ga xush kelibsiz! Keling suhbatni qizdiramiz.",
-    maleLabel: "Erkak",
-    femaleLabel: "Ayol",
-    placeholderAnswer: "Javobingizni yozing...",
-    submitBtn: "Yuborish",
-    restartBtn: "Qayta boshla",
-    skipUsed: "Siz allaqachon bitta savatni o'tkazib yubordingiz.",
-    skipMsg: "Bu savoldan uyalmaysizmi, $NAME? Mayli, keyingi!",
-    playful1: "Oah, $NAME, bu juda qizg'in!",
-    playful2: "Haha, yaxshi javob!",
-    summary: "Voy, $MALE va $FEMALE, siz juda ko'p narsani bo'lishdingiz! Yana o'ynaysizmi?",
-    startBtn: "Boshlash",
-    questions_male: [
-      "Hayotingizda hech kim bilmagan bir orzuingiz nima?",
-      "Sizni eng ko‘p hayajonlantiradigan xotira qaysi?",
-      "Siz uchun ideal romantik kecha qanday bo‘ladi?",
-      "Sizni ko‘nglini egadigan kichik ishorangiz nima?",
-      "Eng quvnoq, ozgina xafsalasizlik tug‘dirgan uchrashuvingiz haqida so‘zlab bering.",
-      "Sizni romantikasi bilan hayratga solgan film qaysi?",
-      "Sizni jalb qiladigan eng kichik odat nima?",
-      "Agar biror joyga ketib qolsa, siz nimani birinchi olib chiqasiz?",
-      "Sizning yashirin romantik qobiliyatingiz nima deb o‘ylaysiz?",
-      "Ranglar orasida qaysi biri sizni sevgi bilan bog‘laydi va nega?"
-    ],
-    questions_female: [
-      "Nimani xayolingizdan o‘tkazganingizda qizarib qolishingiz mumkin?",
-      "Sizni eng ko‘proq qoyil qoldirgan san’at yoki musiqa nima?",
-      "Birinchi uchrashuvingizni ideal qilsak, u qanday kechardi?",
-      "Kimning ko‘ziga qarab jimgina tabassum qilasiz?",
-      "Sizni xayolingizdagidek o‘zgartiradigan kichik zavq nima?",
-      "Hayotingizdagi eng kulgili sevgi xotirasi qaysi?",
-      "Siz uchun mukammal sarguzasht nima ko‘rinishda?",
-      "Qanday sirli xatti-harakat sizni xursand qiladi?",
-      "Agar sirli sovg'a olsangiz, qanday bo‘lishini xohlaysiz?",
-      "Sizni xayolingizdagi romantika bilan bog‘laydigan joy qayer?"
-    ]
-  },
-  ru: {
-    greeting: "Добро пожаловать в Spontaynee! Давайте разожгём интересный разговор.",
-    maleLabel: "Мужчина",
-    femaleLabel: "Женщина",
-    placeholderAnswer: "Напишите ваш ответ...",
-    submitBtn: "Отправить",
-    restartBtn: "Начать заново",
-    skipUsed: "Вы уже использовали один пропуск.",
-    skipMsg: "Слишком стесняешься для этого, $NAME? Ладно, следующий!",
-    playful1: "Ох, $NAME, это пикантно!",
-    playful2: "Ха-ха, отличный ответ!",
-    summary: "Вау, $MALE и $FEMALE, вы столько поделились! Сыграть ещё?",
-    startBtn: "Начать",
-    questions_male: [
-      "Какая мечта у вас есть, о которой никто не знает?",
-      "Какое воспоминание заставляет вас особенно трепетать?",
-      "Какой идеальный романтический вечер для вас?",
-      "Какой маленький жест заставит ваше сердце биться чаще?",
-      "Расскажите о самом смешном, слегка неловком свидании.",
-      "Какой фильм заставил вас влюбиться в романтику?",
-      "Какая мелочь в человеке моментально привлекает вас?",
-      "Если бы нужно было уехать прямо сейчас, что бы вы взяли первым?",
-      "В чем ваш тайный романтический талант?",
-      "Какой цвет ассоциируется у вас с любовью и почему?"
-    ],
-    questions_female: [
-      "Что заставляет вас слегка покраснеть?",
-      "Какая музыка или искусство вас особенно трогает?",
-      "Как бы выглядело ваше идеальное первое свидание?",
-      "На чей взгляд вы невольно улыбнетесь?",
-      "Какая небольшая слабость делает вас счастливой?",
-      "Какое самое смешное воспоминание о любви у вас есть?",
-      "Какое приключение было бы для вас идеальным?",
-      "Какой загадочный поступок заставляет вас улыбаться?",
-      "Если получить загадочный подарок, каким бы вы его хотели?",
-      "Какое место ассоциируется у вас с романтикой?"
-    ]
-  }
+/* ======= Basic app state ======= */
+const state = {
+  players: [],               // players' names
+  currentPlayerIdx: 0,       // 0 or 1
+  questionIdx: 0,            // 0..9 per player
+  skipped: [false, false],   // skip used per player (only one skip each)
+  // Hardcoded 10 questions in Uzbek
+  questions: [
+    "Hech kim bilan bo‘lmagan orzuingiz nima?",
+    "Sizni eng baxtli qilgan kichik xotira qaysi?",
+    "Biror romantik qilmishingiz qachon edi?",
+    "Birinchi uchrashuvni qanday xayol qilasiz?",
+    "Sizning sevimli qo‘shig‘ingiz qaysi va nega?",
+    "Agar bir kun uchun kechirim so‘rasangiz, kimga va nima uchun?",
+    "Qaysi odatni o‘zgartirishni xohlardingiz?",
+    "Sizni kuldiradigan eng yaxshi hazil qaysi?",
+    "Ajoyib romantik taomni tayyorlashni xohlaysizmi? Qaysi taom?",
+    "Kelajakdagi kichik sarguzashtingiz qanday bo‘lishini xohlaysiz?"
+  ],
+  // store responses in-memory; can be extended to persist later
+  responses: [ [], [] ] // responses[playerIdx][questionIdx]
 };
 
-// === DOM Elements ===
-const startScreen = document.getElementById('start-screen');
-const questionScreen = document.getElementById('question-screen');
-const summaryScreen = document.getElementById('summary-screen');
+/* ======= DOM references ======= */
+const screens = {
+  welcome: document.getElementById('welcome'),
+  setup: document.getElementById('setup'),
+  game: document.getElementById('game'),
+  end: document.getElementById('end')
+};
+const nameInput = document.getElementById('name-input');
+const nameLabel = document.getElementById('name-label');
+const nameFeedback = document.getElementById('name-feedback');
 
-const langSelect = document.getElementById('lang-select');
-const greetingEl = document.getElementById('greeting');
-const maleNameInput = document.getElementById('male-name');
-const femaleNameInput = document.getElementById('female-name');
-const startBtn = document.getElementById('start-btn');
-
-const whoLabel = document.getElementById('current-player');
-const questionText = document.getElementById('question-text');
+const progressEl = document.getElementById('progress');
+const questionEl = document.getElementById('question');
 const answerInput = document.getElementById('answer-input');
-const reactionEl = document.getElementById('reaction');
-const progressText = document.getElementById('progress-text');
-const progressFill = document.getElementById('progress-fill');
+const speakBtn = document.getElementById('speak-btn');
+const aiReplyEl = document.getElementById('ai-reply');
 
-const skipBtn = document.getElementById('skip-btn');
-const summaryText = document.getElementById('summary-text');
-const restartBtn = document.getElementById('restart-btn');
+const endMessageNames = document.getElementById('end-names');
 
-const confirmModal = document.getElementById('confirm-modal');
-const confirmYes = document.getElementById('confirm-yes');
-const confirmNo = document.getElementById('confirm-no');
+/* ======= Telegram buttons setup ======= */
+// Use Telegram MainButton for primary actions (Start, Submit, Restart)
+const MainButton = tg.MainButton;
+MainButton.setText("Boshlash"); // initial label for start
+MainButton.show(); // show the Telegram main button on welcome
 
-const reconnectOverlay = document.getElementById('reconnect');
-const reconnectRetry = document.getElementById('reconnect-retry');
+// BackButton will be used as Skip. It is not visible by default.
+const BackButton = tg.BackButton;
 
-// === State keys in localStorage ===
-const LS = {
-  lang: 'sp_lang',
-  maleName: 'sp_male',
-  femaleName: 'sp_female',
-  idx: 'sp_index',
-  maleSkips: 'sp_mskips',
-  femaleSkips: 'sp_fskips',
-  answers: 'sp_answers' // optional store of answers
-};
+/* ======= Helper functions ======= */
 
-// === Utility state helpers ===
-function getLang(){ return localStorage.getItem(LS.lang) || langSelect.value || 'uz'; }
-function setLang(v){ localStorage.setItem(LS.lang, v); }
-function getMaleName(){ return localStorage.getItem(LS.maleName) || ''; }
-function getFemaleName(){ return localStorage.getItem(LS.femaleName) || ''; }
-function setNames(m, f){
-  localStorage.setItem(LS.maleName, m || '');
-  localStorage.setItem(LS.femaleName, f || '');
-}
-function getIndex(){ return parseInt(localStorage.getItem(LS.idx) || '0', 10); }
-function setIndex(i){ localStorage.setItem(LS.idx, String(i)); }
-function getSkips(type){ return parseInt(localStorage.getItem(type === 'male' ? LS.maleSkips : LS.femaleSkips) || '0', 10); }
-function incrementSkips(type){ const key = type === 'male' ? LS.maleSkips : LS.femaleSkips; localStorage.setItem(key, String(getSkips(type) + 1)); }
-function resetSession(){
-  localStorage.removeItem(LS.idx);
-  localStorage.removeItem(LS.maleSkips);
-  localStorage.removeItem(LS.femaleSkips);
-  localStorage.removeItem(LS.answers);
-  // keep language & names so user doesn't retype
-}
-
-// initialize UI from stored values
-function initUIFromStorage(){
-  const lang = getLang();
-  langSelect.value = lang;
-  const m = getMaleName();
-  const f = getFemaleName();
-  if (m) maleNameInput.value = m;
-  if (f) femaleNameInput.value = f;
-  // set greeting text from translations
-  greetingEl.textContent = T[lang].greeting;
-  startBtn.textContent = T[lang].startBtn || 'Start';
-  skipBtn.textContent = lang === 'ru' ? 'Пропустить' : 'O`tkazib yuborish';
-  restartBtn.textContent = T[lang].restartBtn;
-
-  // initial MainButton state: disabled until both names are present
-  updateMainButtonState();
-}
-initUIFromStorage();
-
-// update MainButton enabled state when inputs change
-function updateMainButtonState(){
-  const lang = getLang();
-  const m = maleNameInput.value.trim();
-  const f = femaleNameInput.value.trim();
-  const enabled = m.length > 0 && f.length > 0;
-  safeCall(() => {
-    if (!tg) return;
-    if (enabled){
-      tg.MainButton.setText(T[lang].startBtn || 'Start');
-      tg.MainButton.show();
-      tg.MainButton.enable();
-    } else {
-      tg.MainButton.hide();
-      try { tg.MainButton.disable(); } catch(e) {}
-    }
+// Show screen by id and hide others
+function showScreen(name) {
+  Object.keys(screens).forEach(k => {
+    if (k === name) screens[k].classList.add('screen--visible');
+    else screens[k].classList.remove('screen--visible');
   });
+}
 
-  // Fallback: on-page start button for non-Telegram environments or when MainButton is hidden.
-  // Ensure it's visible and enabled when both names are present.
-  if (!tg){
-    startBtn.style.display = enabled ? 'inline-block' : 'none';
-    startBtn.disabled = !enabled;
+// Save players to localStorage (simple persistence)
+function savePlayersToLocalStorage(players) {
+  try {
+    localStorage.setItem('spontaynee_players', JSON.stringify(players));
+  } catch (e) {
+    console.warn("localStorage error:", e);
+  }
+}
+
+// Load players if previously saved
+function loadPlayersFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem('spontaynee_players');
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+/* ======= Welcome -> Setup flow ======= */
+
+// Handle MainButton click events
+MainButton.onClick(() => {
+  // Determine which screen we are on by checking visibility
+  if (screens.welcome.classList.contains('screen--visible')) {
+    // From welcome -> show setup and ask first player's name
+    startSetup();
+  } else if (screens.setup.classList.contains('screen--visible')) {
+    // From setup: save the current name then move forward
+    handleNameSubmit();
+  } else if (screens.game.classList.contains('screen--visible')) {
+    // From game: submit an answer
+    handleAnswerSubmit();
+  } else if (screens.end.classList.contains('screen--visible')) {
+    // From end: restart
+    handleRestart();
+  }
+});
+
+/* ======= Setup logic ======= */
+function startSetup() {
+  // Try to load saved players
+  const prevPlayers = loadPlayersFromLocalStorage();
+  if (prevPlayers && prevPlayers.length === 2) {
+    // If names exist, show a greeting and continue to game quickly
+    state.players = prevPlayers;
+    nameFeedback.textContent = `Yaxshi tanishganimdan xursandman, ${state.players[0]} va ${state.players[1]}!`;
+    // Move to game after brief delay so user sees saved names
+    setTimeout(() => {
+      showGameForPlayer(0);
+    }, 800);
   } else {
-    // When tg exists but MainButton may be hidden (e.g., theme reasons), keep on-page Start as lower-priority fallback
-    startBtn.style.display = 'none';
+    // Clear any prior state and ask for first name
+    state.players = [];
+    nameInput.value = "";
+    nameLabel.textContent = "Birinchi o’yinchi ismi nima?";
+    nameFeedback.textContent = "";
+    MainButton.setText("Keyingi"); // Next for entering names
+    MainButton.show();
+    showScreen('setup');
+    nameInput.focus();
   }
 }
 
-// wire input events to update MainButton
-langSelect.addEventListener('change', () => { setLang(langSelect.value); initUIFromStorage(); updateMainButtonState(); });
-maleNameInput.addEventListener('input', updateMainButtonState);
-femaleNameInput.addEventListener('input', updateMainButtonState);
-
-// === Main flow logic ===
-
-// Build the unified 20-question sequence using alternation
-function getQuestionForIndex(i){
-  const lang = getLang();
-  const mList = T[lang].questions_male;
-  const fList = T[lang].questions_female;
-  // even index -> male, odd -> female
-  if (i % 2 === 0){
-    const qIdx = Math.floor(i/2);
-    return { player: 'male', text: mList[qIdx] || '' };
-  } else {
-    const qIdx = Math.floor(i/2);
-    return { player: 'female', text: fList[qIdx] || '' };
+function handleNameSubmit() {
+  const name = (nameInput.value || "").trim();
+  if (!name) {
+    nameFeedback.textContent = "Iltimos, ism kiriting (masalan: Dilshod).";
+    nameInput.focus();
+    return;
   }
-}
+  // Save name and show friendly greeting
+  state.players.push(name);
+  savePlayersToLocalStorage(state.players);
+  nameFeedback.textContent = `Yaxshi tanishganimdan xursandman, ${name}!`;
 
-// Show start screen or resume to question screen if mid-session
-function startApp(){
-  const idx = getIndex();
-  if (isNaN(idx) || idx < 0) setIndex(0);
-  if (idx >= 20){
-    // session finished previously, show summary
-    showSummary();
-  } else {
-    showQuestion();
-  }
-}
-
-// Show a question based on current index
-function showQuestion(){
-  const idx = getIndex();
-  if (idx >= 20){
-    return showSummary();
-  }
-
-  const { player, text } = getQuestionForIndex(idx);
-  const lang = getLang();
-
-  // Show appropriate screen
-  startScreen.classList.add('hidden');
-  summaryScreen.classList.add('hidden');
-  questionScreen.classList.remove('hidden');
-
-  // Fill UI
-  const name = (player === 'male' ? getMaleName() : getFemaleName()) || (player === 'male' ? T[lang].maleLabel : T[lang].femaleLabel);
-  whoLabel.textContent = `${name}'s turn`;
-  questionText.textContent = text;
-  answerInput.value = '';
-  answerInput.placeholder = T[lang].placeholderAnswer;
-  reactionEl.textContent = '';
-
-  // progress
-  progressText.textContent = `Question ${idx+1}/20`;
-  const pct = Math.round(((idx)/20)*100);
-  progressFill.style.width = `${pct}%`;
-
-  // Setup skip button visible
-  safeCall(() => {
-    if (tg) tg.BackButton.show();
-  });
-  // Local skip btn for browsers (in addition to using tg.BackButton)
-  skipBtn.disabled = false;
-
-  // Configure Telegram MainButton as Submit
-  safeCall(() => {
-    if (!tg) return;
-    tg.MainButton.setText(T[lang].submitBtn);
-    tg.MainButton.show();
-    try { tg.MainButton.enable(); } catch(e) {}
-    // Remove previous click handlers by reassigning; in some environments onClick stacks, so
-    // we try to set a single handler variable:
-    if (window._sp_main_click) {
-      try { tg.MainButton.offClick(window._sp_main_click); } catch(e) { /* graceful */ }
-    }
-    window._sp_main_click = onSubmit;
-    tg.MainButton.onClick(window._sp_main_click);
-  });
-
-  // For non-Telegram browser testing, also enable the on-page start/submit button as fallback
-  if (!tg) {
-    startBtn.style.display = 'inline-block';
-    startBtn.disabled = false;
-  } else {
-    startBtn.style.display = 'none';
-  }
-}
-
-// Called when user submits an answer
-function onSubmit(){
-  const idx = getIndex();
-  if (idx >= 20) return showSummary();
-
-  const { player } = getQuestionForIndex(idx);
-  const lang = getLang();
-  const name = (player === 'male' ? getMaleName() : getFemaleName()) || (player === 'male' ? T[lang].maleLabel : T[lang].femaleLabel);
-  const answer = answerInput.value.trim();
-
-  // Store answer in localStorage (optional)
-  const store = JSON.parse(localStorage.getItem(LS.answers) || '[]');
-  store.push({ idx, player, name, answer, q: questionText.textContent, ts: Date.now() });
-  localStorage.setItem(LS.answers, JSON.stringify(store));
-
-  // Provide playful response
-  reactionEl.textContent = (Math.random() > 0.5) ? T[lang].playful1.replace('$NAME', name) : T[lang].playful2;
-  // Haptic feedback (if available)
-  safeCall(() => { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium'); });
-
-  // Move to next question after a short delay so user reads the playful response
-  setTimeout(() => {
-    setIndex(idx + 1);
-    if (getIndex() >= 20) showSummary();
-    else showQuestion();
-  }, 900);
-}
-
-// Skip handling
-function onSkip(){
-  const idx = getIndex();
-  if (idx >= 20) return showSummary();
-
-  const { player } = getQuestionForIndex(idx);
-  const lang = getLang();
-  const name = (player === 'male' ? getMaleName() : getFemaleName()) || (player === 'male' ? T[lang].maleLabel : T[lang].femaleLabel);
-
-  if (getSkips(player) >= 1){
-    reactionEl.textContent = T[lang].skipUsed;
+  // If first player saved, ask second player's name
+  if (state.players.length === 1) {
+    nameInput.value = "";
+    nameLabel.textContent = "Ikkinchi o’yinchi ismi nima?";
+    nameInput.focus();
     return;
   }
 
-  // Register skip and show lighthearted skip message
-  incrementSkips(player);
-  reactionEl.textContent = T[lang].skipMsg.replace('$NAME', name);
-  safeCall(() => { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium'); });
-
-  // Advance after a short delay
-  setTimeout(() => {
-    setIndex(idx + 1);
-    if (getIndex() >= 20) showSummary();
-    else showQuestion();
-  }, 700);
+  // Both names provided -> proceed to game
+  if (state.players.length >= 2) {
+    // Reset game indices and show first player's turn
+    state.currentPlayerIdx = 0;
+    state.questionIdx = 0;
+    state.responses = [ [], [] ];
+    state.skipped = [false, false];
+    MainButton.setText("Yuborish"); // change MainButton to 'Submit' for game
+    MainButton.show();
+    showGameForPlayer(0);
+  }
 }
 
-// Show final summary and restart option
-function showSummary(){
-  const lang = getLang();
-  const m = getMaleName() || T[lang].maleLabel;
-  const f = getFemaleName() || T[lang].femaleLabel;
+/* ======= Gameplay logic ======= */
 
-  startScreen.classList.add('hidden');
-  questionScreen.classList.add('hidden');
-  summaryScreen.classList.remove('hidden');
+function showGameForPlayer(playerIdx) {
+  // Set UI for given player and current question
+  showScreen('game');
+  updateQuestionUI(playerIdx, state.questionIdx);
 
-  summaryText.textContent = T[lang].summary.replace('$MALE', m).replace('$FEMALE', f);
+  // Show Skip (Back) button only if skip not yet used for this player
+  if (!state.skipped[playerIdx]) {
+    BackButton.show();
+  } else {
+    BackButton.hide();
+  }
 
-  // Configure Telegram MainButton to be Restart
-  safeCall(() => {
-    if (!tg) return;
-    tg.MainButton.setText(T[lang].restartBtn);
-    // remove previous handler
-    if (window._sp_main_click) {
-      try { tg.MainButton.offClick(window._sp_main_click); } catch(e) {}
-    }
-    window._sp_main_click = onRestart;
-    tg.MainButton.onClick(window._sp_main_click);
-  });
+  // Ensure Telegram main button is visible with submit label
+  MainButton.setText("Yuborish");
+  MainButton.show();
 
-  // Also show BackButton hidden in summary
-  safeCall(() => { if (tg) tg.BackButton.hide(); });
+  // Clear AI reply placeholder and answer input
+  aiReplyEl.textContent = "";
+  answerInput.value = "";
+  answerInput.focus();
 }
 
-// Restart app by clearing session-specific keys
-function onRestart(){
-  // confirm with modal
-  confirmModal.classList.remove('hidden');
+// Update question and progress texts
+function updateQuestionUI(playerIdx, qIdx) {
+  const total = state.questions.length;
+  progressEl.textContent = `Savol ${qIdx + 1}/${total}`;
+  const name = state.players[playerIdx] || "Do'stim";
+  questionEl.textContent = `Yaxshi, ${name}, sizdan boshlaymiz! ${state.questions[qIdx]}`;
 }
 
-confirmNo.addEventListener('click', () => { confirmModal.classList.add('hidden'); });
-confirmYes.addEventListener('click', () => {
-  confirmModal.classList.add('hidden');
-  resetSession();
-  setIndex(0);
-  initUIFromStorage();
-  // show start screen
-  startScreen.classList.remove('hidden');
-  questionScreen.classList.add('hidden');
-  summaryScreen.classList.add('hidden');
-  // Hide Telegram main button until we start again
-  safeCall(() => { if (tg) tg.MainButton.hide(); });
-});
+/* Handle answer submission */
+function handleAnswerSubmit() {
+  const text = (answerInput.value || "").trim();
+  // For accessibility, allow empty answers but encourage content
+  // Store the answer (even if empty)
+  state.responses[state.currentPlayerIdx].push(text);
 
-// === Event bindings ===
-startBtn.addEventListener('click', () => {
-  // Save language and names
-  const lang = langSelect.value;
-  setLang(lang);
-  const m = maleNameInput.value.trim();
-  const f = femaleNameInput.value.trim();
-  setNames(m, f);
+  // Simulate AI reply placeholder (witty comment)
+  const name = state.players[state.currentPlayerIdx];
+  const reply = `Oh, ${name}, bu juda qiziq!`; // Uzbek placeholder
+  aiReplyEl.textContent = reply;
 
-  // initialize skip counters and index if not present
-  if (!localStorage.getItem(LS.idx)) setIndex(0);
-  if (!localStorage.getItem(LS.maleSkips)) localStorage.setItem(LS.maleSkips, '0');
-  if (!localStorage.getItem(LS.femaleSkips)) localStorage.setItem(LS.femaleSkips, '0');
-
-  // Start the Q&A flow
-  // Hide start screen and begin
-  safeCall(() => { if (tg) tg.MainButton.hide(); });
-  // Ensure on-page button is disabled to avoid double starts
-  startBtn.disabled = true;
-  startApp();
-});
-
-restartBtn.addEventListener('click', onRestart);
-
-// Skip click (on-page fallback)
-skipBtn.addEventListener('click', onSkip);
-
-// Telegram BackButton also used for skip
-if (tg && tg.BackButton){
+  // Haptic feedback (mobile) to indicate success
   try {
-    // remove previous handler if present
-    if (window._sp_back_click) tg.BackButton.offClick(window._sp_back_click);
-  } catch (e) {}
-  window._sp_back_click = onSkip;
-  safeCall(() => { if (tg) tg.BackButton.onClick(window._sp_back_click); });
+    tg.HapticFeedback.impactOccurred('medium');
+  } catch (e) {
+    // Not all clients support haptic; ignore errors
+  }
+
+  // Move to next question or switch player
+  advanceTurn();
 }
 
-// For safety: expose some functions for debugging in browser console
-window._sp = {
-  getIndex,
-  setIndex,
-  getSkips,
-  resetSession
-};
+/* BackButton (skip) handling - one skip per player */
+BackButton.onClick(() => {
+  // Only allow skip if not yet used
+  const p = state.currentPlayerIdx;
+  if (state.skipped[p]) {
+    // Do nothing; skip already used
+    return;
+  }
+  state.skipped[p] = true; // mark skip used
+  // Record a skipped answer as special marker
+  state.responses[p].push("[o‘tkazildi]");
+
+  // Show a small feedback in UI
+  aiReplyEl.textContent = `Siz o‘tkazdingiz. Bu sizning bitta o‘tkazishingiz edi.`;
+
+  // Provide haptic feedback
+  try { tg.HapticFeedback.impactOccurred('medium'); } catch (e) {}
+
+  // Advance after a short pause so user sees message
+  setTimeout(() => advanceTurn(), 700);
+});
+
+/* Advance turn logic */
+function advanceTurn() {
+  // Increase question index for current player
+  state.questionIdx += 1;
+
+  if (state.questionIdx >= state.questions.length) {
+    // Current player finished 10 questions
+    if (state.currentPlayerIdx === 0) {
+      // Switch to second player
+      state.currentPlayerIdx = 1;
+      state.questionIdx = 0;
+      // Update UI for second player
+      showGameForPlayer(state.currentPlayerIdx);
+      return;
+    } else {
+      // Both players done -> finish session
+      finishSession();
+      return;
+    }
+  } else {
+    // Same player, next question
+    updateQuestionUI(state.currentPlayerIdx, state.questionIdx);
+    answerInput.value = "";
+    aiReplyEl.textContent = "";
+    answerInput.focus();
+
+    // Update skip button visibility for this player
+    if (!state.skipped[state.currentPlayerIdx]) BackButton.show();
+    else BackButton.hide();
+  }
+}
+
+/* Finish session */
+function finishSession() {
+  showScreen('end');
+  MainButton.setText("Qayta boshlash");
+  MainButton.show();
+  BackButton.hide();
+
+  // Display both names
+  endMessageNames.textContent = `${state.players[0]} va ${state.players[1]}`;
+
+  // Optionally, here you could send collected responses to a backend or save them.
+}
+
+/* Handle restart */
+function handleRestart() {
+  // Confirmation popup (native)
+  const confirmRestart = confirm("Rostdan ham qayta boshlamoqchimisiz? Barcha javoblar o‘chadi.");
+  if (!confirmRestart) return;
+
+  // Reset state and go back to welcome
+  state.players = [];
+  state.currentPlayerIdx = 0;
+  state.questionIdx = 0;
+  state.skipped = [false, false];
+  state.responses = [ [], [] ];
+  savePlayersToLocalStorage([]); // clear stored names
+
+  // Reset UI
+  MainButton.setText("Boshlash");
+  showScreen('welcome');
+}
+
+/* ======= Voice placeholders ======= */
 
 /*
-  SECURITY NOTE:
-  The Telegram Web App provides an `initData` string (tg.initData) to identify the user and the context.
-  This data MUST be validated on your backend using HMAC-SHA-256 with your bot token (or bot's secret)
-  before trusting user identity or performing sensitive actions. Do NOT rely solely on client-side
-  checks; validate initData on server-side as documented in:
-  https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
+  Speak button is a placeholder for integrating Whisper (speech-to-text).
+  Real implementation steps (not implemented here):
+  - Capture microphone using getUserMedia()
+  - Send audio to Whisper API (server-side proxy is required for API keys and security)
+  - Receive transcript and place into answerInput.value
+  - Optionally send text to ChatGPT for witty analysis and then to TTS (OpenAI TTS)
+*/
+speakBtn.addEventListener('click', () => {
+  // Inform user this is a placeholder
+  alert("Voice input bu yerda bekorchi (placeholder). Whisper va TTS integratsiyasini backend orqali qo‘shing.");
+});
+
+/* ======= Keyboard enter to submit in text areas (accessibility) ======= */
+answerInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    // Ctrl/Cmd+Enter to submit (avoid capturing plain Enter which inserts newline)
+    e.preventDefault();
+    handleAnswerSubmit();
+  }
+});
+
+/* ======= Security note ======= */
+/*
+  IMPORTANT SECURITY NOTE:
+  The Telegram Web App provides `tg.initData` and `tg.initDataUnsafe`.
+  initData must be validated on your backend using the bot token and HMAC-SHA-256
+  as described in Telegram docs to ensure requests are authentic.
+  Do NOT trust initData on the client alone; perform server-side validation.
 */
 
-// Start: if there is an ongoing session, jump in
-(function autoStartIfNeeded(){
-  const idx = getIndex();
-  if (idx && idx > 0 && idx < 20){
-    // restore UI language values
-    initUIFromStorage();
-    startApp();
-  } else {
-    // ensure MainButton hidden until we need it (clean UX)
-    safeCall(() => { if (tg) tg.MainButton.hide(); });
-  }
-})();
+/* ======= On load: ensure welcome screen shown ======= */
+showScreen('welcome');
+
+/* Set initial focus for accessibility after a tiny delay */
+setTimeout(() => {
+  document.getElementById('main').focus();
+}, 300);
