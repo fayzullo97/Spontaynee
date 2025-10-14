@@ -39,12 +39,18 @@ app.post('/api/whisper', upload.single('audio'), async (req, res) => {
     if (!OPENAI_API_KEY) return res.status(500).send('Missing OPENAI_API_KEY');
 
     // Build form-data for the OpenAI request
+    // Default language set to Uzbek ('uz') to improve recognition accuracy for Uzbek speech.
+    // Allow overriding with ?lang=xx query parameter if needed.
+    const requestedLang = (req.query && req.query.lang) ? String(req.query.lang).trim() : 'uz';
+    console.log('[whisper] using language:', requestedLang);
+
     const FormData = require('form-data');
     const form = new FormData();
     form.append('file', fileStream, {
       filename: 'speech.webm'
     });
     form.append('model', 'whisper-1');
+    form.append('language', requestedLang);
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
