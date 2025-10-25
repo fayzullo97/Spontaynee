@@ -49,8 +49,8 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
 .card {
   /* New card sizing: 50% of viewport width and 2:3 height ratio (height = 1.5 * width).
     This keeps cards responsive while following the requested 2:3 ratio. */
-  width: 50vw; /* 50% of the viewport width */
-  height: 75vw; /* 1.5 * 50vw = 75vw to achieve 2:3 ratio */
+  width: 70vw; /* 50% of the viewport width */
+  height: 105vw; /* 1.5 * 50vw = 75vw to achieve 2:3 ratio */
   max-width: 520px;
   max-height: 780px;
   background: #FFFFFF; /* white card background per design */
@@ -78,7 +78,7 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
      Using 36px size for strong emphasis per design requirements. */
   font-family: 'Gilroy', 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   font-weight: 700; /* Bold-style for Gilroy Bold appearance */
-  font-size: 36px;
+  font-size: 32px;
   line-height: 1.2;
   color: #000000;
   padding: 8px;
