@@ -161,6 +161,19 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
   font-weight: 400;
 }
 
+/* Make deck cards animate when the top card is swiped. The .pop class
+   transitions the decorative deck card into the main position to give
+   the visual effect that the next card comes out from behind. */
+.deck-card { transition: transform 0.35s ease-out, opacity 0.28s ease-out; }
+.deck-card.pop {
+  transform: translate(-50%, -50%) scale(1) translateY(0) rotate(0);
+  opacity: 1;
+  z-index: 1; /* put it above other deck layers but below the main card during animation */
+}
+
+/* When main card is removed after swipe, hide it to prevent it snapping back */
+.card.swiped-away { visibility: hidden; pointer-events: none; opacity: 0; }
+
 /* New card enters with fade-in + slide-up */
 .card.enter {
   transform: translateY(8px);

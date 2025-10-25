@@ -227,20 +227,26 @@ function displayNewQuestion(text, opts = {}) {
 
 /* Animate card out (direction: 'left' or 'right') and then show new question */
 function swipeToNext(direction) {
-  // Add out class to animate away
+  // Make the deck card 'pop' into place while the main card animates out.
+  if (deckCards[0]) deckCards[0].classList.add('pop');
+
+  // Add out class to animate the main card away
   if (direction === 'left') questionCard.classList.add('out-left');
   else questionCard.classList.add('out-right');
+
+  // Disable interactions on the main card immediately so the user can't re-swipe
+  questionCard.style.pointerEvents = 'none';
 
   // After animation completes, promote the top deck question into the main card
   setTimeout(() => {
     // Grab the next question from the first deck card (the one visually closest)
     const topDeckText = deckQuestions[0].textContent || getRandomQuestion();
 
-    // Reset transforms and classes on the main card
-    questionCard.style.transform = '';
-    questionCard.classList.remove('out-left', 'out-right');
+    // Hide the old main card to prevent it snapping back into view
+    questionCard.classList.add('swiped-away');
 
-    // Display the deck's question in the main card with enter animation
+    // Update the main card's text to the deck's question
+    // and show it with the enter animation for a pop effect
     displayNewQuestion(topDeckText, {enter: true});
 
     // Shift deck: move deckQuestions[1] -> deckQuestions[0], then refill deckQuestions[1]
@@ -253,8 +259,18 @@ function swipeToNext(direction) {
       deckQuestions[0].textContent = getRandomQuestion();
     }
 
-    // restore focus for accessibility
-    questionCard.focus();
+    // Remove the pop class after a short delay so the deck returns to normal stack state
+    setTimeout(() => {
+      if (deckCards[0]) deckCards[0].classList.remove('pop');
+    }, 380);
+
+    // Restore the main card's interaction and visibility after the enter animation
+    setTimeout(() => {
+      questionCard.classList.remove('swiped-away');
+      questionCard.style.pointerEvents = '';
+      // restore focus
+      questionCard.focus();
+    }, 420);
   }, 520); // wait slightly longer than CSS transition (0.5s) so animation completes
 }
 
