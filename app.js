@@ -230,23 +230,42 @@ function swipeToNext(direction) {
   // Make the deck card 'pop' into place while the main card animates out.
   if (deckCards[0]) deckCards[0].classList.add('pop');
 
-  // Add out class to animate the main card away
-  if (direction === 'left') questionCard.classList.add('out-left');
-  else questionCard.classList.add('out-right');
-
   // Disable interactions on the main card immediately so the user can't re-swipe
   questionCard.style.pointerEvents = 'none';
+
+  // Animate the main card off-screen using inline transforms and transitions.
+  // Using inline styles for this animation avoids conflicts with the inline transform
+  // set during dragging, which was causing the card to snap/return to center.
+  const targetTransform = direction === 'left'
+    ? 'translateX(-140vw) rotate(-15deg) rotateY(-15deg)'
+    : 'translateX(140vw) rotate(15deg) rotateY(15deg)';
+
+  // Set an explicit transition so this animation runs even if inline styles
+  // were previously used during dragging.
+  questionCard.style.transition = 'transform 0.5s ease-out, opacity 0.45s ease-out';
+  // Apply the target transform and fade out
+  questionCard.style.transform = targetTransform;
+  questionCard.style.opacity = '0';
 
   // After animation completes, promote the top deck question into the main card
   setTimeout(() => {
     // Grab the next question from the first deck card (the one visually closest)
     const topDeckText = deckQuestions[0].textContent || getRandomQuestion();
 
-    // Hide the old main card to prevent it snapping back into view
+    // Hide the old main card (we'll reset inline styles shortly) to prevent it snapping back into view
     questionCard.classList.add('swiped-away');
 
-    // Update the main card's text to the deck's question
-    // and show it with the enter animation for a pop effect
+    // Reset inline styles that moved the old card off-screen so the newly-updated
+    // main card can use the normal CSS enter animation. We reset after a short
+    // microtask to avoid interfering with the ongoing animation.
+    setTimeout(() => {
+      // Clear inline transform/opacity/transition so CSS classes control the next enter animation
+      questionCard.style.transform = '';
+      questionCard.style.opacity = '';
+      questionCard.style.transition = '';
+    }, 20);
+
+    // Update the main card's text to the deck's question and show it with enter animation
     displayNewQuestion(topDeckText, {enter: true});
 
     // Shift deck: move deckQuestions[1] -> deckQuestions[0], then refill deckQuestions[1]
@@ -294,14 +313,16 @@ function onPointerMove(clientX) {
 function onPointerUp() {
   if (!isDragging) return;
   isDragging = false;
-  // restore smooth transition
-  questionCard.style.transition = '';
+  // restore smooth transition for snap-back (if not swiped)
+  // We don't remove inline transition here; instead we set an appropriate transition
+  // so that returning to center animates smoothly when the swipe is cancelled.
   if (Math.abs(currentX) > SWIPE_THRESHOLD) {
     // Determine direction and animate out
     const dir = currentX < 0 ? 'left' : 'right';
     swipeToNext(dir);
   } else {
-    // Not far enough: spring back to center
+    // Not far enough: spring back to center with a smooth transition
+    questionCard.style.transition = 'transform 300ms cubic-bezier(.22,.9,.32,1)';
     questionCard.style.transform = '';
   }
   startX = 0;
