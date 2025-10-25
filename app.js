@@ -32,6 +32,10 @@ const questionText = document.getElementById('question-text');
 const notesField = document.getElementById('notes');
 const localBackButton = document.getElementById('back-button'); // in-page button as fallback
 
+// Deck card elements (visual stack behind the main card)
+const deckCards = Array.from(document.querySelectorAll('.deck-card'));
+const deckQuestions = deckCards.map(card => card.querySelector('.deck-question'));
+
 // Show the Telegram MainButton labeled "Start"
 mainButton.setText('Start');
 mainButton.show();
@@ -174,10 +178,29 @@ function startApp() {
   try { mainButton.hide(); } catch (e) { /* ignore if not supported */ }
 
   // Show the first random question, with small enter animation
-  displayNewQuestion(getRandomQuestion(), {enter: true});
+  const first = getRandomQuestion();
+  displayNewQuestion(first, {enter: true});
+
+  // Preload the next two questions into the deck so it looks like they come from underneath
+  populateDeck();
 
   // Ensure the card can be focused for accessibility
   questionCard.focus();
+}
+
+/* Populate the decorative deck cards with upcoming questions. We ensure they are
+   different from the currently visible question to avoid immediate repeats. */
+function populateDeck() {
+  for (let i = 0; i < deckQuestions.length; i++) {
+    let next = getRandomQuestion();
+    // If deck already contains the same text, keep trying (small guard)
+    let attempts = 0;
+    while (deckQuestions.some(d => d.textContent === next) && attempts < 10) {
+      next = getRandomQuestion();
+      attempts++;
+    }
+    deckQuestions[i].textContent = next;
+  }
 }
 
 /* Display question and manage enter animation */
@@ -208,17 +231,31 @@ function swipeToNext(direction) {
   if (direction === 'left') questionCard.classList.add('out-left');
   else questionCard.classList.add('out-right');
 
-  // After animation completes, reset transform and show new question
+  // After animation completes, promote the top deck question into the main card
   setTimeout(() => {
-    // Reset transform (so new card appears centered)
+    // Grab the next question from the first deck card (the one visually closest)
+    const topDeckText = deckQuestions[0].textContent || getRandomQuestion();
+
+    // Reset transforms and classes on the main card
     questionCard.style.transform = '';
     questionCard.classList.remove('out-left', 'out-right');
 
-    // Show next random question
-    displayNewQuestion(getRandomQuestion(), {enter: true});
-    // restore focus
+    // Display the deck's question in the main card with enter animation
+    displayNewQuestion(topDeckText, {enter: true});
+
+    // Shift deck: move deckQuestions[1] -> deckQuestions[0], then refill deckQuestions[1]
+    if (deckQuestions.length >= 2) {
+      deckQuestions[0].textContent = deckQuestions[1].textContent;
+      // Refill the last deck slot with a fresh question
+      deckQuestions[1].textContent = getRandomQuestion();
+    } else if (deckQuestions.length === 1) {
+      // Only one deck slot: just refill it
+      deckQuestions[0].textContent = getRandomQuestion();
+    }
+
+    // restore focus for accessibility
     questionCard.focus();
-  }, 320);
+  }, 520); // wait slightly longer than CSS transition (0.5s) so animation completes
 }
 
 /* ========== Touch and Mouse event handlers for swipe ========== */

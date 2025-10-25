@@ -32,8 +32,15 @@
       <div id="card-container" class="card-container" aria-live="polite">
         <!-- Stacked decorative cards behind the main interactive card.
              These are visual only (aria-hidden) and create a layered stack effect. -->
-        <article class="card deck-card" aria-hidden="true"></article>
-        <article class="card deck-card" aria-hidden="true"></article>
+        <article class="card deck-card" aria-hidden="true">
+          <!-- Deck cards show upcoming questions so the next question appears to come from beneath -->
+          <p class="question-text deck-question">Upcoming question</p>
+          <div class="card-brand">Randomee</div>
+        </article>
+        <article class="card deck-card" aria-hidden="true">
+          <p class="question-text deck-question">Another upcoming question</p>
+          <div class="card-brand">Randomee</div>
+        </article>
 
         <!-- Main interactive card (used by app.js). Keep IDs intact so JS continues to work. -->
         <article id="question-card" class="card" tabindex="0" aria-label="Question card">
