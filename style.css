@@ -21,38 +21,56 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
 
 /* Header */
 .header { flex: 0 0 10%; display:flex; align-items:center; justify-content:center; }
-#title { margin:0; font-weight:700; font-size:20px; color: var(--tg-theme-text-color); }
+#title { margin:0; font-weight:700; font-size:20px; color: #FFFFFF; }
+
+/* Ensure header is a positioned container so top-right counter can be absolutely placed */
+.header { position: relative; }
+
+/* Card counter in the top-right corner */
+.card-counter {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-family: var(--font-family);
+  font-weight: 700; /* Noto Sans Bold 700 */
+  font-size: 14px;
+  color: #FFFFFF; /* white text */
+  background: transparent;
+}
 
 /* Main body */
-.main { flex:1 1 80%; display:flex; flex-direction:column; gap: var(--gap); align-items:center; justify-content:flex-start; }
+.main { flex:1 1 80%; display:flex; flex-direction:column; gap: var(--gap); align-items:center; justify-content:flex-start; position:relative; }
 
 /* Card container centers the card */
-.card-container { width:100%; max-width:420px; height:100%; display:flex; align-items:center; justify-content:center; padding-top: 8px; }
+.card-container { width:100%; max-width:420px; height:100%; display:flex; align-items:center; justify-content:center; padding-top: 8px; position:relative; }
 
 /* Card element: rounded, bordered, padding */
+/* Card design: white card with black text, centered. Stacked layout for swipe effect. */
 .card {
   width:100%;
   height:70%;
   max-height:420px;
-  background: var(--card-bg);
-  border: 3px solid var(--card-border);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 6px 18px rgba(30,58,138,0.12);
+  background: #FFFFFF; /* white card background per design */
+  color: #000000; /* black text for questions */
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 8px; /* 8px rounded corners */
+  padding: 16px; /* 16px inner padding */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
   display:flex;
   align-items:center;
   justify-content:center;
   text-align:center;
-  transition: transform 250ms ease, opacity 200ms ease;
+  transition: transform 300ms cubic-bezier(.22,.9,.32,1), opacity 220ms ease;
   will-change: transform, opacity;
   user-select: none;
   -webkit-user-select:none;
   touch-action: pan-y;
   outline: none;
+  position: relative;
 }
 
 /* Question text */
-.question-text { font-size:16px; line-height:1.4; font-weight:400; color: var(--tg-theme-text-color); padding: 8px; }
+.question-text { font-size:20px; line-height:1.4; font-weight:400; color: #000000; padding: 8px; font-family: var(--font-family); }
 
 /* Notes */
 .notes-label { align-self:flex-start; font-weight:600; margin-top:8px; font-size:14px; color:var(--tg-theme-text-color); }
@@ -82,8 +100,8 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
 /* Card swipe states */
 /* When card is swiping, we add inline transform; CSS handles transition */
 /* Out animations: translate and fade */
-.card.out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; transition: transform 300ms ease, opacity 200ms ease; }
-.card.out-right { transform: translateX(120%) rotate(10deg); opacity: 0; transition: transform 300ms ease, opacity 200ms ease; }
+.card.out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; }
+.card.out-right { transform: translateX(120%) rotate(10deg); opacity: 0; }
 
 /* New card enters with fade-in + slide-up */
 .card.enter {
@@ -104,3 +122,22 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
   .card { height:60%; }
   body { font-size:16px; }
 }
+
+/* Swipe instruction at the bottom-center */
+.swipe-instruction {
+  position: absolute;
+  bottom: 18px; /* slightly above footer */
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.4); /* white at 40% opacity */
+  font-size: 16px; /* medium size */
+  font-weight: 400; /* Noto Sans Regular 400 */
+  font-family: var(--font-family);
+}
+
+/* Main screen background: dark ocean blue. We still allow Telegram theme to override these via tg.themeParams in app.js */
+/* Note: This design adapts to Telegram's theme parameters when provided for dark/light mode flexibility. */
+body, html { background: #1A2A44; }
+
+/* Ensure high contrast and minimum font-size for accessibility */
+body { color: #FFFFFF; }

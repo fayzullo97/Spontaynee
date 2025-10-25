@@ -1,4 +1,3 @@
-// ...existing code...
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,22 +17,29 @@
 <body>
   <!-- App container: mobile-first, centered -->
   <div id="app" class="app">
-    <!-- Header (10% height): app title -->
+    <!-- Header (10% height): app title; we keep title for accessibility/branding -->
     <header class="header" role="banner">
       <h1 id="title">Randomee</h1>
+
+      <!-- Card counter: top-right corner showing current card number / total -->
+      <!-- This is purely visual; the number can be updated by app logic if desired -->
+      <div id="card-counter" class="card-counter" aria-hidden="true">0/20</div>
     </header>
 
     <!-- Body (80% height): swipeable card + optional notes -->
     <main class="main" role="main">
       <!-- Card container: holds the single visible card -->
       <div id="card-container" class="card-container" aria-live="polite">
-        <!-- Card element (text is inserted dynamically) -->
+        <!-- Card element (text is inserted dynamically). Keep ids used by app.js unchanged. -->
         <article id="question-card" class="card" tabindex="0" aria-label="Question card">
           <p id="question-text" class="question-text">Welcome to Randomee — press Start to begin.</p>
         </article>
       </div>
 
-      <!-- Optional notes: small textarea for discussion or notes -->
+      <!-- Subtle instruction at the bottom-center of the screen to guide users -->
+      <div class="swipe-instruction" aria-hidden="true">Swipe to reveal next card</div>
+
+      <!-- Optional notes: small textarea for discussion or notes (kept for parity) -->
       <label for="notes" class="notes-label">Notes (optional)</label>
       <textarea id="notes" class="notes" rows="3" placeholder="Jot down thoughts or answers..."></textarea>
     </main>
