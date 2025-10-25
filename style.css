@@ -1,225 +1,106 @@
-/* ...existing code... */
-
-/* Basic CSS variables including Telegram theme fallbacks and color palette */
+/* Global variables and Telegram theme integration fallbacks.
+   These values will be overridden by app.js using tg.themeParams when possible. */
 :root{
-  /* Telegram theme variables (will be overridden by JS if tg.themeParams exists) */
-  --tg-theme-bg-color: #F5F5F5; /* warm gray */
-  --tg-theme-button-color: #FFC1CC; /* soft pink */
-  --tg-theme-text-color: #1E3A8A; /* deep blue */
-  --card-bg: #FFFFFF; /* white */
+  --tg-theme-bg-color: #F5F5F5;    /* warm gray background */
+  --tg-theme-text-color: #1E3A8A;  /* deep blue text */
+  --card-bg: #FFC1CC;              /* soft pink card */
+  --card-border: #FFFFFF;          /* white border */
+  --accent: #1E3A8A;
   --gap: 8px;
-  --pad: 16px;
-  --font-family: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --padding: 16px;
+  --font-family: 'Noto Sans', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
-/* Mobile-first layout */
-html,body{
-  height:100%;
-  margin:0;
-  background:var(--tg-theme-bg-color);
-  color:var(--tg-theme-text-color);
-  font-family:var(--font-family);
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
-}
+/* Reset and base */
+* { box-sizing: border-box; }
+html,body,#app { height: 100%; margin:0; padding:0; background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); font-family: var(--font-family); -webkit-font-smoothing:antialiased; }
+body { font-size: 16px; } /* accessibility: minimum 16px */
 
-/* App root occupies full viewport */
-.app-root{
-  display:flex;
-  flex-direction:column;
-  min-height:100vh;
-  padding:var(--pad);
-  gap:var(--gap);
-}
+/* App layout: header(10%), main(80%), footer(10%) */
+.app { display: flex; flex-direction: column; height: 100vh; gap: var(--gap); padding: var(--padding); }
 
-/* Header 10% height approximately */
-.app-header{
-  flex:0 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  height:10vh;
-}
+/* Header */
+.header { flex: 0 0 10%; display:flex; align-items:center; justify-content:center; }
+#title { margin:0; font-weight:700; font-size:20px; color: var(--tg-theme-text-color); }
 
-#title{
-  margin:0;
-  font-weight:700;
-  font-size:20px; /* header font size per spec */
-  color:var(--tg-theme-text-color);
-}
+/* Main body */
+.main { flex:1 1 80%; display:flex; flex-direction:column; gap: var(--gap); align-items:center; justify-content:flex-start; }
 
-/* Main content (approx 70% height) */
-.app-body{
-  flex:1 1 auto;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:var(--gap);
-}
+/* Card container centers the card */
+.card-container { width:100%; max-width:420px; height:100%; display:flex; align-items:center; justify-content:center; padding-top: 8px; }
 
-/* Footer 20% approximate */
-.app-footer{
-  flex:0 0 auto;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  height:20vh;
-}
-
-.hint{
-  margin:0;
-  font-size:14px;
-  color:var(--tg-theme-text-color);
-  opacity:0.9;
-}
-
-/* Screen handling: only .screen--visible is shown */
-.screen{
-  display:none;
+/* Card element: rounded, bordered, padding */
+.card {
   width:100%;
-  max-width:520px;
-}
-.screen--visible{
-  display:block;
-}
-
-/* Welcome screen visuals */
-.lead{
-  font-weight:400;
-  font-size:16px;
-  text-align:center;
-  margin-bottom:16px;
-}
-
-/* Circular start visual (actual action is Telegram MainButton) */
-.start-circle{
-  width:160px;
-  height:160px;
-  background:linear-gradient(180deg, var(--tg-theme-button-color), #FF9EB0);
-  border-radius:50%;
+  height:70%;
+  max-height:420px;
+  background: var(--card-bg);
+  border: 3px solid var(--card-border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(30,58,138,0.12);
   display:flex;
   align-items:center;
   justify-content:center;
-  margin:0 auto;
-  box-shadow:0 6px 16px rgba(0,0,0,0.12);
-}
-.start-label{
-  font-weight:700;
-  color:var(--card-bg);
-  font-size:18px;
-}
-
-/* Form inputs and labels */
-.form-row{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.label{
-  font-weight:700;
-  font-size:14px;
-}
-.text-input, .text-area{
-  padding:12px;
-  font-size:16px; /* minimum 16px for accessibility */
-  border-radius:8px;
-  border:1px solid rgba(30,58,138,0.12);
-  background:var(--card-bg);
-  color:var(--tg-theme-text-color);
-  outline:none;
-  resize:vertical;
-}
-.text-input:focus, .text-area:focus{
-  box-shadow:0 0 0 4px rgba(255,193,204,0.14);
-}
-
-/* Card for question */
-.card{
-  background:var(--card-bg);
-  border-radius:12px;
-  padding:var(--pad);
-  box-shadow:0 6px 18px rgba(30,58,138,0.06);
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-/* Question and progress */
-.progress{
-  font-size:14px;
-  font-weight:700;
-  color:var(--tg-theme-text-color);
-}
-.question{
-  font-size:16px;
-  font-weight:400;
-}
-
-/* Voice row */
-.voice-row{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.btn{
-  padding:8px 12px;
-  border-radius:8px;
-  border:none;
-  background:var(--tg-theme-button-color);
-  color:#fff;
-  font-weight:700;
-  cursor:pointer;
-}
-.btn-ghost{
-  padding:6px 10px;
-  border-radius:8px;
-  background:transparent;
-  border:1px dashed rgba(30,58,138,0.12);
-  color:var(--tg-theme-text-color);
-  cursor:pointer;
-}
-.voice-note{
-  font-size:12px;
-  color:rgba(30,58,138,0.8);
-}
-
-/* AI reply placeholder */
-.ai-reply{
-  margin-top:8px;
-  padding:10px;
-  border-radius:8px;
-  background:linear-gradient(180deg, #fff, #fafafa);
-  border:1px solid rgba(30,58,138,0.04);
-  font-size:14px;
-}
-
-/* Small feedback text */
-.feedback{
-  font-size:13px;
-  color:rgba(30,58,138,0.9);
-}
-
-/* End screen */
-#end .lead{
-  font-size:16px;
   text-align:center;
+  transition: transform 250ms ease, opacity 200ms ease;
+  will-change: transform, opacity;
+  user-select: none;
+  -webkit-user-select:none;
+  touch-action: pan-y;
+  outline: none;
 }
 
-/* Accessibility helpers */
-.visually-hidden{
-  position:absolute;
-  width:1px;
-  height:1px;
-  margin:-1px;
-  padding:0;
-  overflow:hidden;
-  clip:rect(0 0 0 0);
-  border:0;
+/* Question text */
+.question-text { font-size:16px; line-height:1.4; font-weight:400; color: var(--tg-theme-text-color); padding: 8px; }
+
+/* Notes */
+.notes-label { align-self:flex-start; font-weight:600; margin-top:8px; font-size:14px; color:var(--tg-theme-text-color); }
+.notes {
+  width:100%;
+  max-width:420px;
+  border-radius:8px;
+  border:1px solid rgba(0,0,0,0.08);
+  padding:12px;
+  resize:vertical;
+  font-size:16px;
+  background: #fff;
 }
 
-/* Responsive tweaks */
-@media(min-width:720px){
-  .start-circle{ width:200px; height:200px; }
-  .start-label{ font-size:20px; }
-  #title{ font-size:24px; }
+/* Footer */
+.footer { flex: 0 0 10%; display:flex; align-items:center; justify-content:center; gap:12px; }
+.back-button {
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  padding:8px 16px;
+  border-radius: 8px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+/* Card swipe states */
+/* When card is swiping, we add inline transform; CSS handles transition */
+/* Out animations: translate and fade */
+.card.out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; transition: transform 300ms ease, opacity 200ms ease; }
+.card.out-right { transform: translateX(120%) rotate(10deg); opacity: 0; transition: transform 300ms ease, opacity 200ms ease; }
+
+/* New card enters with fade-in + slide-up */
+.card.enter {
+  transform: translateY(8px);
+  opacity: 0;
+}
+.card.enter-active {
+  transform: translateY(0);
+  opacity: 1;
+  transition: transform 220ms ease, opacity 200ms ease;
+}
+
+/* Focus style for keyboard users */
+.card:focus { box-shadow: 0 0 0 4px rgba(30,58,138,0.12); }
+
+/* Responsiveness */
+@media (min-width:600px) {
+  .card { height:60%; }
+  body { font-size:16px; }
 }

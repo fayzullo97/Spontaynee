@@ -1,91 +1,46 @@
-<!-- ...existing code... -->
+// ...existing code...
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Spontaynee — Suhbatni boshlang</title>
+  <title>Randomee — Spark conversation</title>
 
-  <!-- Google Font: Noto Sans for Uzbek readability -->
+  <!-- Noto Sans for readability (Bold 700 for headers, Regular 400 for body) -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
 
-  <!-- Telegram Web App script (required) -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- App styles -->
+  <!-- Main stylesheet -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Telegram Web Apps JS SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <!-- Root app container -->
-  <div id="app" class="app-root">
-    <!-- Header (10% height) -->
-    <header class="app-header" role="banner">
-      <h1 id="title">Spontaynee</h1>
+  <!-- App container: mobile-first, centered -->
+  <div id="app" class="app">
+    <!-- Header (10% height): app title -->
+    <header class="header" role="banner">
+      <h1 id="title">Randomee</h1>
     </header>
 
-    <!-- Body (70% height) -->
-    <main id="main" class="app-body" role="main" tabindex="0">
-      <!-- Welcome screen -->
-      <section id="welcome" class="screen screen--visible">
-        <p class="lead">Xush kelibsiz Spontaynee! Keling suhbatlashamiz!</p>
-        <!-- Visual centered circular start area (button will be Telegram MainButton) -->
-        <div class="start-circle" aria-hidden="true">
-          <span class="start-label">Boshlash</span>
-        </div>
-        <!-- In-page fallback start button for environments where Telegram MainButton
-             is not available or not interactive (helps during browser testing) -->
-        <div style="text-align:center; margin-top:16px;">
-          <button id="fallback-start" class="btn" aria-label="Boshlash">Boshlash</button>
-        </div>
-      </section>
+    <!-- Body (80% height): swipeable card + optional notes -->
+    <main class="main" role="main">
+      <!-- Card container: holds the single visible card -->
+      <div id="card-container" class="card-container" aria-live="polite">
+        <!-- Card element (text is inserted dynamically) -->
+        <article id="question-card" class="card" tabindex="0" aria-label="Question card">
+          <p id="question-text" class="question-text">Welcome to Randomee — press Start to begin.</p>
+        </article>
+      </div>
 
-      <!-- Player setup screen -->
-      <section id="setup" class="screen">
-        <p id="setup-prompt" class="prompt">Qatnashuvchilar soni qancha?</p>
-        <!-- For now we assume 2 players; ask names one by one -->
-        <div class="form-row">
-          <label for="name-input" class="label" id="name-label">Birinchi o’yinchi ismi nima?</label>
-          <input id="name-input" class="text-input" type="text" inputmode="text" autocomplete="name" />
-        </div>
-        <small id="name-feedback" class="feedback" aria-live="polite"></small>
-        <div style="text-align:center; margin-top:12px;">
-          <button id="fallback-next" class="btn">Keyingi</button>
-        </div>
-      </section>
-
-      <!-- Gameplay screen -->
-      <section id="game" class="screen">
-        <div class="card">
-          <div class="progress" id="progress">Savol 1/10</div>
-          <div class="question" id="question">Hech kim bilan bo‘lmagan orzuingiz nima?</div>
-
-          <!-- Response area -->
-          <label for="answer-input" class="label visually-hidden">Javob</label>
-          <textarea id="answer-input" class="text-area" rows="4" placeholder="Javobingizni yozing yoki 'Speak' bilan gapiring..."></textarea>
-
-          <!-- Voice placeholder and small instructions -->
-          <div class="voice-row">
-            <button id="speak-btn" class="btn btn-ghost" aria-label="Talaffuz">Speak (mikrofon)</button>
-            <small class="voice-note">Voice: Whisper, ChatGPT va Text-to-Speech uchun bu joylar keyin to‘ldiriladi.</small>
-          </div>
-
-          <!-- Placeholder for AI reply after submission -->
-          <div id="ai-reply" class="ai-reply" aria-live="polite"></div>
-        </div>
-        <div style="text-align:center; margin-top:12px;">
-          <button id="fallback-submit" class="btn">Yuborish</button>
-        </div>
-      </section>
-
-      <!-- End screen -->
-      <section id="end" class="screen">
-        <p id="end-message" class="lead">Rahmat, <span id="end-names"></span>, ajoyib suhbat uchun! Qayta o‘ynaysizmi?</p>
-      </section>
+      <!-- Optional notes: small textarea for discussion or notes -->
+      <label for="notes" class="notes-label">Notes (optional)</label>
+      <textarea id="notes" class="notes" rows="3" placeholder="Jot down thoughts or answers..."></textarea>
     </main>
 
-    <!-- Footer (20% height) for Telegram buttons hints (actual buttons are Telegram UI) -->
-    <footer class="app-footer" role="contentinfo">
-      <p class="hint">Pastdagi Telegram tugmalaridan foydalaning: <strong>Main</strong> — yuborish / boshlash, <strong>Back</strong> — o‘tkazish</p>
+    <!-- Footer (10% height): Back button area -->
+    <footer class="footer" role="contentinfo">
+      <button id="back-button" class="back-button" aria-label="Go back">Back</button>
     </footer>
   </div>
 

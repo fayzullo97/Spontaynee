@@ -1,544 +1,328 @@
 // ...existing code...
-
 /*
   app.js
-  - Simple, beginner-friendly logic for Spontaynee Telegram Mini App
-  - Uses Telegram Web App JS API: window.Telegram.WebApp
-  - UI text is in Uzbek.
+  - Initializes Telegram WebApp SDK
+  - Sets up MainButton (Start) and BackButton (Back)
+  - Displays a swipeable card with a random question from a hardcoded list of 100 questions
+  - Handles touch and mouse gestures for swipe-left / swipe-right to get a new random question
 */
 
-/* ======= Telegram WebApp init ======= */
-const tg = window.Telegram.WebApp; // Telegram Web App object
+/* ========== Telegram initialization ========== */
+const tg = window.Telegram.WebApp; // Telegram WebApp SDK object
 
-// Make the web app ready and expand UI to use full height on mobile.
-tg.ready();          // signal to Telegram that app is ready
-tg.expand();         // ask Telegram to expand web view
+// Make the webapp ready and expand available area in chat (best for full-screen)
+tg.ready();
+tg.expand(); // ask Telegram to expand the WebApp view for more vertical space
 
-// Apply Telegram theme params to CSS variables if present (dark/light)
+// Apply Telegram theme parameters (if provided) to CSS variables for consistent look
 if (tg.themeParams) {
-  // Map a few Telegram theme params to CSS variables used in style.css
   const root = document.documentElement;
+  // Map a few theme params into our CSS variables (safe defaults already in CSS)
   if (tg.themeParams.bg_color) root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
-  if (tg.themeParams.button_color) root.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
   if (tg.themeParams.text_color) root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+  // You can map more themeParams if needed
 }
 
-/* ======= Basic app state ======= */
-const state = {
-  players: [],               // players' names
-  currentPlayerIdx: 0,       // 0 or 1
-  questionIdx: 0,            // 0..9 per player
-  skipped: [false, false],   // skip used per player (only one skip each)
-  // Hardcoded 10 questions in Uzbek
-  questions: [
-    "Hech kim bilan bo‘lmagan orzuingiz nima?",
-    "Sizni eng baxtli qilgan kichik xotira qaysi?",
-    "Biror romantik qilmishingiz qachon edi?",
-    "Birinchi uchrashuvni qanday xayol qilasiz?",
-    "Sizning sevimli qo‘shig‘ingiz qaysi va nega?",
-    "Agar bir kun uchun kechirim so‘rasangiz, kimga va nima uchun?",
-    "Qaysi odatni o‘zgartirishni xohlardingiz?",
-    "Sizni kuldiradigan eng yaxshi hazil qaysi?",
-    "Ajoyib romantik taomni tayyorlashni xohlaysizmi? Qaysi taom?",
-    "Kelajakdagi kichik sarguzashtingiz qanday bo‘lishini xohlaysiz?"
-  ],
-  // store responses in-memory; can be extended to persist later
-  responses: [ [], [] ] // responses[playerIdx][questionIdx]
-};
+/* ========== UI elements ========== */
+const mainButton = tg.MainButton; // Telegram MainButton for "Start"
+const backButton = tg.BackButton; // Telegram BackButton for in-app "Back"
 
-/* ======= DOM references ======= */
-const screens = {
-  welcome: document.getElementById('welcome'),
-  setup: document.getElementById('setup'),
-  game: document.getElementById('game'),
-  end: document.getElementById('end')
-};
-const nameInput = document.getElementById('name-input');
-const nameLabel = document.getElementById('name-label');
-const nameFeedback = document.getElementById('name-feedback');
+const questionCard = document.getElementById('question-card');
+const questionText = document.getElementById('question-text');
+const notesField = document.getElementById('notes');
+const localBackButton = document.getElementById('back-button'); // in-page button as fallback
 
-const progressEl = document.getElementById('progress');
-const questionEl = document.getElementById('question');
-const answerInput = document.getElementById('answer-input');
-const speakBtn = document.getElementById('speak-btn');
-const aiReplyEl = document.getElementById('ai-reply');
+// Show the Telegram MainButton labeled "Start"
+mainButton.setText('Start');
+mainButton.show();
 
-// A small helper element to show live transcription state (we reuse aiReplyEl
-// for accessibility but keep a small helper API below to format messages).
-
-function setTranscriptUI(state, text) {
-  // state: 'idle' | 'recording' | 'uploading' | 'ready' | 'error'
-  switch (state) {
-    case 'recording':
-      aiReplyEl.style.opacity = '1';
-      aiReplyEl.textContent = 'Yozilmoqda… Iltimos gapiring.'; // Uzbek
-      break;
-    case 'uploading':
-      aiReplyEl.style.opacity = '0.95';
-      aiReplyEl.textContent = 'Transkript olinmoqda… Iltimos kuting.';
-      break;
-    case 'ready':
-      aiReplyEl.style.opacity = '1';
-      aiReplyEl.textContent = text ? `Transkript: ${text}` : 'Transkript topilmadi.';
-      break;
-    case 'error':
-      aiReplyEl.style.opacity = '1';
-      aiReplyEl.textContent = text || 'Xato: transkriptsiya amalga oshmadi.';
-      break;
-    default:
-      aiReplyEl.style.opacity = '0.9';
-      aiReplyEl.textContent = '';
-  }
-}
-
-const endMessageNames = document.getElementById('end-names');
-
-/* ======= Telegram buttons setup ======= */
-// Use Telegram MainButton for primary actions (Start, Submit, Restart)
-const MainButton = tg.MainButton;
-MainButton.setText("Boshlash"); // initial label for start
-MainButton.show(); // show the Telegram main button on welcome
-
-// BackButton will be used as Skip. It is not visible by default.
-const BackButton = tg.BackButton;
-
-/* ======= Helper functions ======= */
-
-// Show screen by id and hide others
-function showScreen(name) {
-  Object.keys(screens).forEach(k => {
-    if (k === name) screens[k].classList.add('screen--visible');
-    else screens[k].classList.remove('screen--visible');
-  });
-}
-
-// Save players to localStorage (simple persistence)
-function savePlayersToLocalStorage(players) {
-  try {
-    localStorage.setItem('spontaynee_players', JSON.stringify(players));
-  } catch (e) {
-    console.warn("localStorage error:", e);
-  }
-}
-
-// Load players if previously saved
-function loadPlayersFromLocalStorage() {
-  try {
-    const raw = localStorage.getItem('spontaynee_players');
-    if (raw) return JSON.parse(raw);
-  } catch (e) { /* ignore */ }
-  return null;
-}
-
-/* ======= Welcome -> Setup flow ======= */
-
-// Handle MainButton click events
-MainButton.onClick(() => {
-  // Determine which screen we are on by checking visibility
-  if (screens.welcome.classList.contains('screen--visible')) {
-    // From welcome -> show setup and ask first player's name
-    startSetup();
-  } else if (screens.setup.classList.contains('screen--visible')) {
-    // From setup: save the current name then move forward
-    handleNameSubmit();
-  } else if (screens.game.classList.contains('screen--visible')) {
-    // From game: submit an answer
-    handleAnswerSubmit();
-  } else if (screens.end.classList.contains('screen--visible')) {
-    // From end: restart
-    handleRestart();
-  }
+// When main button is clicked, start the app
+mainButton.onClick(() => {
+  startApp();
 });
 
-// Fallback in-page start button (for browsers or testing outside Telegram)
-const fallbackStartBtn = document.getElementById('fallback-start');
-if (fallbackStartBtn) {
-  fallbackStartBtn.addEventListener('click', () => {
-    // Mirror what MainButton would do on welcome
-    if (screens.welcome.classList.contains('screen--visible')) startSetup();
-  });
+/* Back button behavior:
+   - Telegram BackButton will close the Web App or go back depending on host (we just show it)
+   - Also wire the in-page Back button as a fallback for environments without Telegram SDK
+*/
+try { backButton.show(); } catch (e) { /* ignore if not supported */ }
+
+// In-page Back button (fallback)
+localBackButton.addEventListener('click', () => {
+  // If Telegram supports close, use it
+  if (tg.close) tg.close();
+  else alert('Back: close the app or navigate back in Telegram.');
+});
+
+/* ========== Questions data (100 hardcoded questions) ========== */
+/* These are playful, flirty, and thought-provoking prompts for couples. */
+const QUESTIONS = [
+  "What’s the first thing you noticed about me?",
+  "What’s your favorite way to spend a lazy Sunday together?",
+  "If we met again, how would you flirt with me?",
+  "What’s one small thing I do that makes you smile?",
+  "What memory of us makes you laugh out loud?",
+  "What’s a secret hobby you’d like us to try together?",
+  "Describe our perfect cozy night in.",
+  "What’s the nicest compliment you’ve ever received from me?",
+  "What’s one dream you hope we share in the future?",
+  "If our relationship had a theme song, what would it be?",
+  "What’s a question you’ve always wanted to ask me but never did?",
+  "What’s a smell that reminds you of me?",
+  "What’s one adventurous date you’d like to go on?",
+  "What do you think my superpower is in our relationship?",
+  "If we could teleport for a weekend, where would we go?",
+  "What’s one habit I have that you secretly adore?",
+  "When do you feel the most connected to me?",
+  "What’s a silly nickname you think I should have?",
+  "What’s the most romantic thing you imagine us doing someday?",
+  "If you had to cook one meal for me forever, what would it be?",
+  "What’s a movie that reminds you of us?",
+  "What’s a playful dare you'd give me right now?",
+  "What’s the kindest thing someone has done for you that you want me to know about?",
+  "What small ritual would you like us to start together?",
+  "Which of my quirks makes you smile the most?",
+  "What’s a fantasy vacation just for us?",
+  "If you drew our relationship as a picture, what colors would you choose?",
+  "What’s an embarrassing moment we can laugh about together?",
+  "When do you feel most proud of us?",
+  "What’s one thing you want to learn from me?",
+  "What was your first impression of my sense of humor?",
+  "What is one word that sums up us?",
+  "If you could give our future self one piece of advice, what would it be?",
+  "What little detail about me do you wish you had noticed earlier?",
+  "What’s one question that would surprise me if you asked it?",
+  "What scent or place instantly brings back thoughts of us?",
+  "What’s a tradition you’d like to create together?",
+  "What everyday thing with me feels like an adventure?",
+  "Which trait of mine do you find most comforting?",
+  "What hobby would you want us to master together?",
+  "What’s a romantic gesture that doesn’t involve money?",
+  "If we starred in a book, what would the title be?",
+  "What’s something brave you’d love to try together?",
+  "What’s a childhood memory you’d like to share with me?",
+  "What’s one thing you’d keep private between just us?",
+  "What’s the sweetest thing I’ve ever done for you?",
+  "What would you whisper to me on a quiet morning?",
+  "What's a question you'd like to answer honestly right now?",
+  "How do you want to feel when you think about us in 10 years?",
+  "What’s one little surprise I could do that would make your day?",
+  "If we could learn one language together, which would it be and why?",
+  "What’s a hobby you think would bring us closer?",
+  "What’s the funniest thing we’ve done together?",
+  "What’s one challenge you want to face together?",
+  "What’s a scent you’d like to recreate for a special night?",
+  "What’s a small daily habit that would strengthen us?",
+  "What’s a secret talent you haven’t told me about?",
+  "What’s one place that feels like ‘our spot’?",
+  "What do you think our grand adventure would look like?",
+  "What’s the most thoughtful gift I could give you?",
+  "If we re-created our first date, what would we change?",
+  "What’s something you admire about how I handle problems?",
+  "What question would make you blush if I asked it?",
+  "What childhood dream would you like us to explore together?",
+  "What’s a playful rule we could invent for our relationship?",
+  "What’s the kindest thing you’d like me to do without asking?",
+  "What’s one truth about us that makes you smile?",
+  "What’s the most romantic sunset scenario you imagine for us?",
+  "What habit of mine makes life easier for you?",
+  "If we could time-travel together, what era would we visit and why?",
+  "What style of date makes you feel most loved?",
+  "What’s a compliment you want to hear more from me?",
+  "What is a fear you’d like us to face together?",
+  "What is a secret you trust me with?",
+  "What is one silly debate we should have just for fun?",
+  "What’s the best way I can support your day-to-day life?",
+  "What imaginary pet would we have and what would we name it?",
+  "What’s the one question that always sparks great conversation between us?",
+  "What gift could I give that would be meaningful because of the memory behind it?",
+  "What’s a quiet activity you enjoy most with me?",
+  "If we built a tiny house, what would be the most important feature?",
+  "What's the funniest way to cheer you up after a long day?",
+  "If we made a pact for a year, what playful rule would you choose?",
+  "What’s a story about you that I should know by heart?",
+  "What’s one way we can celebrate small wins together?",
+  "If we created a secret handshake, what move would you add?",
+  "What’s a question about love you think we should explore together?",
+  "What’s the most romantic rainy-day plan you can imagine for us?"
+];
+
+/* ========== Utility: get random question but avoid immediate repeats ========== */
+let previousIndex = -1;
+function getRandomQuestion() {
+  if (QUESTIONS.length === 0) return "No questions available.";
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * QUESTIONS.length);
+  } while (QUESTIONS.length > 1 && idx === previousIndex);
+  previousIndex = idx;
+  return QUESTIONS[idx];
 }
 
-// If Telegram's MainButton is available, hide the fallback start to avoid UI confusion
-try {
-  // Only hide the fallback start button when the Web App is actually
-  // opened inside Telegram. Some browsers may load the Telegram script
-  // but not run inside the Telegram client, so we make the check stricter:
-  // - initData must be a non-empty string OR
-  // - initDataUnsafe must be an object with keys
-  // Otherwise we assume we're in a normal browser and show the fallback.
-  let inTelegram = false;
-  try {
-    if (tg) {
-      if (typeof tg.initData === 'string' && tg.initData.trim().length > 0) inTelegram = true;
-      else if (tg.initDataUnsafe && typeof tg.initDataUnsafe === 'object' && Object.keys(tg.initDataUnsafe).length > 0) inTelegram = true;
-      // earlier fallback: if Telegram provides other detection helpers, treat as inside
-      else if (typeof tg.isVersion === 'function') inTelegram = true;
-    }
-  } catch (e) {
-    inTelegram = false;
-  }
+/* ========== App state and gesture handling ========== */
+let isStarted = false;
+let startX = 0;
+let currentX = 0;
+let isDragging = false;
 
-  if (inTelegram) {
-    if (fallbackStartBtn) fallbackStartBtn.style.display = 'none';
-  } else {
-    // Show fallback in normal browsers
-    if (fallbackStartBtn) fallbackStartBtn.style.display = 'inline-block';
-  }
+// Threshold in px to trigger a swipe (mobile-friendly)
+const SWIPE_THRESHOLD = 80;
 
-  // Setup fallback Next button (when Telegram MainButton isn't used)
-  const fallbackNextBtn = document.getElementById('fallback-next');
-  if (fallbackNextBtn) {
-    fallbackNextBtn.addEventListener('click', () => {
-      if (screens.setup.classList.contains('screen--visible')) handleNameSubmit();
-    });
-    if (inTelegram) fallbackNextBtn.style.display = 'none';
-  }
+// Start the app: hide MainButton, show first question, set focus
+function startApp() {
+  isStarted = true;
+  try { mainButton.hide(); } catch (e) { /* ignore if not supported */ }
 
-  // Game fallback Submit button
-  const fallbackSubmitBtn = document.getElementById('fallback-submit');
-  if (fallbackSubmitBtn) {
-    fallbackSubmitBtn.addEventListener('click', () => {
-      if (screens.game.classList.contains('screen--visible')) handleAnswerSubmit();
-    });
-    if (inTelegram) fallbackSubmitBtn.style.display = 'none';
-  }
-} catch (e) {
-  // tg may be undefined in non-Telegram environments; ignore
+  // Show the first random question, with small enter animation
+  displayNewQuestion(getRandomQuestion(), {enter: true});
+
+  // Ensure the card can be focused for accessibility
+  questionCard.focus();
 }
 
-/* ======= Setup logic ======= */
-function startSetup() {
-  // Try to load saved players
-  const prevPlayers = loadPlayersFromLocalStorage();
-  if (prevPlayers && prevPlayers.length === 2) {
-    // If names exist, show a greeting and continue to game quickly
-    state.players = prevPlayers;
-    nameFeedback.textContent = `Yaxshi tanishganimdan xursandman, ${state.players[0]} va ${state.players[1]}!`;
-    // Move to game after brief delay so user sees saved names
+/* Display question and manage enter animation */
+function displayNewQuestion(text, opts = {}) {
+  // Remove transitional classes
+  questionCard.classList.remove('out-left', 'out-right', 'enter', 'enter-active');
+  // Temporarily set opacity to 0 for enter animation if needed
+  if (opts.enter) {
+    questionCard.classList.add('enter');
+    // allow styles to apply before activating transition
+    requestAnimationFrame(() => {
+      questionText.textContent = text;
+      questionCard.classList.add('enter-active');
+    });
+    // remove enter classes after animation
     setTimeout(() => {
-      showGameForPlayer(0);
-    }, 800);
+      questionCard.classList.remove('enter', 'enter-active');
+    }, 300);
   } else {
-    // Clear any prior state and ask for first name
-    state.players = [];
-    nameInput.value = "";
-    nameLabel.textContent = "Birinchi o’yinchi ismi nima?";
-    nameFeedback.textContent = "";
-    MainButton.setText("Keyingi"); // Next for entering names
-    MainButton.show();
-    showScreen('setup');
-    nameInput.focus();
+    // Normal replace
+    questionText.textContent = text;
   }
 }
 
-function handleNameSubmit() {
-  const name = (nameInput.value || "").trim();
-  if (!name) {
-    nameFeedback.textContent = "Iltimos, ism kiriting (masalan: Dilshod).";
-    nameInput.focus();
-    return;
-  }
-  // Save name and show friendly greeting
-  state.players.push(name);
-  savePlayersToLocalStorage(state.players);
-  nameFeedback.textContent = `Yaxshi tanishganimdan xursandman, ${name}!`;
+/* Animate card out (direction: 'left' or 'right') and then show new question */
+function swipeToNext(direction) {
+  // Add out class to animate away
+  if (direction === 'left') questionCard.classList.add('out-left');
+  else questionCard.classList.add('out-right');
 
-  // If first player saved, ask second player's name
-  if (state.players.length === 1) {
-    nameInput.value = "";
-    nameLabel.textContent = "Ikkinchi o’yinchi ismi nima?";
-    nameInput.focus();
-    return;
-  }
+  // After animation completes, reset transform and show new question
+  setTimeout(() => {
+    // Reset transform (so new card appears centered)
+    questionCard.style.transform = '';
+    questionCard.classList.remove('out-left', 'out-right');
 
-  // Both names provided -> proceed to game
-  if (state.players.length >= 2) {
-    // Reset game indices and show first player's turn
-    state.currentPlayerIdx = 0;
-    state.questionIdx = 0;
-    state.responses = [ [], [] ];
-    state.skipped = [false, false];
-    MainButton.setText("Yuborish"); // change MainButton to 'Submit' for game
-    MainButton.show();
-    showGameForPlayer(0);
-  }
+    // Show next random question
+    displayNewQuestion(getRandomQuestion(), {enter: true});
+    // restore focus
+    questionCard.focus();
+  }, 320);
 }
 
-/* ======= Gameplay logic ======= */
+/* ========== Touch and Mouse event handlers for swipe ========== */
+function onPointerDown(clientX) {
+  isDragging = true;
+  startX = clientX;
+  currentX = 0;
+  // Stop any ongoing transitions
+  questionCard.style.transition = 'none';
+}
 
-function showGameForPlayer(playerIdx) {
-  // Set UI for given player and current question
-  showScreen('game');
-  updateQuestionUI(playerIdx, state.questionIdx);
+function onPointerMove(clientX) {
+  if (!isDragging) return;
+  currentX = clientX - startX;
+  // Slight rotation based on movement for a playful effect
+  const rotate = Math.max(-15, Math.min(15, (currentX / 20)));
+  questionCard.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+}
 
-  // Show Skip (Back) button only if skip not yet used for this player
-  if (!state.skipped[playerIdx]) {
-    BackButton.show();
+function onPointerUp() {
+  if (!isDragging) return;
+  isDragging = false;
+  // restore smooth transition
+  questionCard.style.transition = '';
+  if (Math.abs(currentX) > SWIPE_THRESHOLD) {
+    // Determine direction and animate out
+    const dir = currentX < 0 ? 'left' : 'right';
+    swipeToNext(dir);
   } else {
-    BackButton.hide();
+    // Not far enough: spring back to center
+    questionCard.style.transform = '';
   }
-
-  // Ensure Telegram main button is visible with submit label
-  MainButton.setText("Yuborish");
-  MainButton.show();
-
-  // Clear AI reply placeholder and answer input
-  aiReplyEl.textContent = "";
-  answerInput.value = "";
-  answerInput.focus();
+  startX = 0;
+  currentX = 0;
 }
 
-// Update question and progress texts
-function updateQuestionUI(playerIdx, qIdx) {
-  const total = state.questions.length;
-  progressEl.textContent = `Savol ${qIdx + 1}/${total}`;
-  const name = state.players[playerIdx] || "Do'stim";
-  questionEl.textContent = `Yaxshi, ${name}, sizdan boshlaymiz! ${state.questions[qIdx]}`;
-}
-
-/* Handle answer submission */
-function handleAnswerSubmit() {
-  const text = (answerInput.value || "").trim();
-  // For accessibility, allow empty answers but encourage content
-  // Store the answer (even if empty)
-  state.responses[state.currentPlayerIdx].push(text);
-
-  // Simulate AI reply placeholder (witty comment)
-  const name = state.players[state.currentPlayerIdx];
-  const reply = `Oh, ${name}, bu juda qiziq!`; // Uzbek placeholder
-  aiReplyEl.textContent = reply;
-
-  // Haptic feedback (mobile) to indicate success
-  try {
-    tg.HapticFeedback.impactOccurred('medium');
-  } catch (e) {
-    // Not all clients support haptic; ignore errors
+/* Touch events (mobile) */
+questionCard.addEventListener('touchstart', (e) => {
+  if (!isStarted) return;
+  if (e.touches.length === 1) onPointerDown(e.touches[0].clientX);
+});
+questionCard.addEventListener('touchmove', (e) => {
+  if (!isStarted) return;
+  if (e.touches.length === 1) {
+    onPointerMove(e.touches[0].clientX);
+    e.preventDefault(); // prevent scrolling while swiping
   }
-
-  // Move to next question or switch player
-  advanceTurn();
-}
-
-/* BackButton (skip) handling - one skip per player */
-BackButton.onClick(() => {
-  // Only allow skip if not yet used
-  const p = state.currentPlayerIdx;
-  if (state.skipped[p]) {
-    // Do nothing; skip already used
-    return;
-  }
-  state.skipped[p] = true; // mark skip used
-  // Record a skipped answer as special marker
-  state.responses[p].push("[o‘tkazildi]");
-
-  // Show a small feedback in UI
-  aiReplyEl.textContent = `Siz o‘tkazdingiz. Bu sizning bitta o‘tkazishingiz edi.`;
-
-  // Provide haptic feedback
-  try { tg.HapticFeedback.impactOccurred('medium'); } catch (e) {}
-
-  // Advance after a short pause so user sees message
-  setTimeout(() => advanceTurn(), 700);
+}, { passive: false });
+questionCard.addEventListener('touchend', () => {
+  if (!isStarted) return;
+  onPointerUp();
 });
 
-/* Advance turn logic */
-function advanceTurn() {
-  // Increase question index for current player
-  state.questionIdx += 1;
-
-  if (state.questionIdx >= state.questions.length) {
-    // Current player finished 10 questions
-    if (state.currentPlayerIdx === 0) {
-      // Switch to second player
-      state.currentPlayerIdx = 1;
-      state.questionIdx = 0;
-      // Update UI for second player
-      showGameForPlayer(state.currentPlayerIdx);
-      return;
-    } else {
-      // Both players done -> finish session
-      finishSession();
-      return;
-    }
-  } else {
-    // Same player, next question
-    updateQuestionUI(state.currentPlayerIdx, state.questionIdx);
-    answerInput.value = "";
-    aiReplyEl.textContent = "";
-    answerInput.focus();
-
-    // Update skip button visibility for this player
-    if (!state.skipped[state.currentPlayerIdx]) BackButton.show();
-    else BackButton.hide();
-  }
-}
-
-/* Finish session */
-function finishSession() {
-  showScreen('end');
-  MainButton.setText("Qayta boshlash");
-  MainButton.show();
-  BackButton.hide();
-
-  // Display both names
-  endMessageNames.textContent = `${state.players[0]} va ${state.players[1]}`;
-
-  // Optionally, here you could send collected responses to a backend or save them.
-}
-
-/* Handle restart */
-function handleRestart() {
-  // Confirmation popup (native)
-  const confirmRestart = confirm("Rostdan ham qayta boshlamoqchimisiz? Barcha javoblar o‘chadi.");
-  if (!confirmRestart) return;
-
-  // Reset state and go back to welcome
-  state.players = [];
-  state.currentPlayerIdx = 0;
-  state.questionIdx = 0;
-  state.skipped = [false, false];
-  state.responses = [ [], [] ];
-  savePlayersToLocalStorage([]); // clear stored names
-
-  // Reset UI
-  MainButton.setText("Boshlash");
-  showScreen('welcome');
-}
-
-/* ======= Voice placeholders ======= */
-
-/*
-  Speak button is a placeholder for integrating Whisper (speech-to-text).
-  Real implementation steps (not implemented here):
-  - Capture microphone using getUserMedia()
-  - Send audio to Whisper API (server-side proxy is required for API keys and security)
-  - Receive transcript and place into answerInput.value
-  - Optionally send text to ChatGPT for witty analysis and then to TTS (OpenAI TTS)
-*/
-speakBtn.addEventListener('click', () => {
-  // Start a simple in-browser recorder and send audio to the server
-  // This implementation records audio using MediaRecorder, sends it as
-  // multipart/form-data to the backend endpoint `/api/whisper`, and
-  // inserts the returned transcript into the answer input.
-  // NOTE: You must run the example backend (server.js) which forwards
-  // audio to OpenAI Whisper. Do NOT put your OpenAI API key in client-side code.
-  handleSpeakClick();
+/* Mouse events for desktop users */
+questionCard.addEventListener('mousedown', (e) => {
+  if (!isStarted) return;
+  onPointerDown(e.clientX);
+});
+window.addEventListener('mousemove', (e) => {
+  if (!isStarted) return;
+  onPointerMove(e.clientX);
+});
+window.addEventListener('mouseup', () => {
+  if (!isStarted) return;
+  onPointerUp();
 });
 
-// Recording state
-let mediaRecorder = null;
-let recordedChunks = [];
-let isRecording = false;
-
-async function handleSpeakClick() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Mikrofonga kirish mavjud emas. Iltimos zamonaviy brauzer ishlating.');
+/* Keyboard support: Left/Right arrows or Enter for accessibility */
+questionCard.addEventListener('keydown', (e) => {
+  if (!isStarted) {
+    // If not started, pressing Enter starts the app
+    if (e.key === 'Enter' || e.key === ' ') startApp();
     return;
   }
-
-  // Toggle recording on/off
-  if (!isRecording) {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-
-      mediaRecorder.addEventListener('dataavailable', (e) => {
-        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-      });
-
-      mediaRecorder.addEventListener('stop', async () => {
-        // Stop tracks
-        stream.getTracks().forEach(t => t.stop());
-
-        // Build a Blob from recorded chunks
-        const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
-
-        // UI: show uploading
-        setTranscriptUI('uploading');
-        speakBtn.disabled = true;
-        speakBtn.textContent = 'Yuklanmoqda...';
-
-        try {
-          const form = new FormData();
-          // The server expects field name 'audio'
-          form.append('audio', audioBlob, 'speech.webm');
-
-          // Send explicit language hint to the server (uz for Uzbek).
-          // This ensures the server forwards the correct language parameter to Whisper.
-          const resp = await fetch('/api/whisper?lang=uz', {
-            method: 'POST',
-            body: form
-          });
-
-          if (!resp.ok) {
-            const txt = await resp.text();
-            throw new Error(txt || 'Server transcription xatosi');
-          }
-
-          const data = await resp.json();
-
-          // The backend returns an object with the transcription text.
-          // For OpenAI Whisper the shape is typically { text: '...' }
-          const transcript = (data && (data.text || data.transcript)) || '';
-          if (transcript) {
-            // Insert transcript into the answer input so user can edit before submit
-            answerInput.value = transcript;
-            setTranscriptUI('ready', transcript);
-            // Focus answer input so user can continue quickly
-            answerInput.focus();
-          } else {
-            setTranscriptUI('ready', '');
-          }
-        } catch (err) {
-          console.error('Whisper API error:', err);
-          setTranscriptUI('error', 'Xato: audioni transkriptsiya qilish mumkin emas.');
-        } finally {
-          speakBtn.disabled = false;
-          speakBtn.textContent = 'Speak (mikrofon)';
-        }
-      });
-
-      mediaRecorder.start();
-      isRecording = true;
-      speakBtn.textContent = 'To\'xtatish';
-      speakBtn.setAttribute('aria-pressed', 'true');
-    } catch (err) {
-      console.error('getUserMedia error', err);
-      alert('Mikrofonga ruxsat berilmadi yoki xato yuz berdi.');
-    }
-  } else {
-    // Stop recording
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-    isRecording = false;
-    speakBtn.textContent = 'Speak (mikrofon)';
-    speakBtn.setAttribute('aria-pressed', 'false');
-  }
-}
-
-/* ======= Keyboard enter to submit in text areas (accessibility) ======= */
-answerInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-    // Ctrl/Cmd+Enter to submit (avoid capturing plain Enter which inserts newline)
-    e.preventDefault();
-    handleAnswerSubmit();
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    swipeToNext(e.key === 'ArrowLeft' ? 'left' : 'right');
   }
 });
 
-/* ======= Security note ======= */
-/*
-  IMPORTANT SECURITY NOTE:
-  The Telegram Web App provides `tg.initData` and `tg.initDataUnsafe`.
-  initData must be validated on your backend using the bot token and HMAC-SHA-256
-  as described in Telegram docs to ensure requests are authentic.
-  Do NOT trust initData on the client alone; perform server-side validation.
-*/
+/* Quick tap to show a new question (optional behavior) */
+questionCard.addEventListener('click', () => {
+  if (!isStarted) return;
+  // Quick tap shows next question (non-committal)
+  displayNewQuestion(getRandomQuestion(), {enter: true});
+});
 
-/* ======= On load: ensure welcome screen shown ======= */
-showScreen('welcome');
-
-/* Set initial focus for accessibility after a tiny delay */
+/* ========== Start prompt for users who haven't pressed MainButton (safety) ========== */
+// If app isn't started after 5 seconds, show a subtle hint in the card
 setTimeout(() => {
-  document.getElementById('main').focus();
-}, 300);
+  if (!isStarted) questionText.textContent = "Tap 'Start' (or press Enter) to begin Randomee.";
+}, 5000);
+
+/* ========== Security Note ==========
+  The Telegram WebApp may provide initData (tg.initData) for identifying the user.
+  IMPORTANT: initData must be validated on your server using HMAC-SHA-256 according to
+  Telegram docs. Do NOT trust initData on the client for authentication or sensitive logic.
+  Validate it on the backend with your bot token as described in:
+  https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
+*/
+
+/* ========== Optional: Use tg.initData if available (read-only on client) ========== */
+if (tg.initData) {
+  // We simply log it for debugging — don't rely on it for secure decisions on client-side
+  console.log('Telegram initData (client-side):', tg.initData);
+}
+
+/* End of app.js */
