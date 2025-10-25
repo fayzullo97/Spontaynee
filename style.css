@@ -47,13 +47,16 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
 /* Card element: rounded, bordered, padding */
 /* Card design: white card with black text, centered. Stacked layout for swipe effect. */
 .card {
-  width:100%;
-  height:70%;
-  max-height:420px;
+  /* New card sizing: 50% of viewport width and 2:3 height ratio (height = 1.5 * width).
+    This keeps cards responsive while following the requested 2:3 ratio. */
+  width: 50vw; /* 50% of the viewport width */
+  height: 75vw; /* 1.5 * 50vw = 75vw to achieve 2:3 ratio */
+  max-width: 520px;
+  max-height: 780px;
   background: #FFFFFF; /* white card background per design */
   color: #000000; /* black text for questions */
   border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 8px; /* 8px rounded corners */
+  border-radius: 20px; /* 20px rounded corners as requested */
   padding: 16px; /* 16px inner padding */
   box-shadow: 0 8px 24px rgba(0,0,0,0.18);
   display:flex;
@@ -70,7 +73,17 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
 }
 
 /* Question text */
-.question-text { font-size:20px; line-height:1.4; font-weight:400; color: #000000; padding: 8px; font-family: var(--font-family); }
+.question-text {
+  /* Use Gilroy Bold for question text if available, with Noto Sans as fallback.
+     Using 36px size for strong emphasis per design requirements. */
+  font-family: 'Gilroy', 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-weight: 700; /* Bold-style for Gilroy Bold appearance */
+  font-size: 36px;
+  line-height: 1.2;
+  color: #000000;
+  padding: 8px;
+  text-align: center;
+}
 
 /* Notes */
 .notes-label { align-self:flex-start; font-weight:600; margin-top:8px; font-size:14px; color:var(--tg-theme-text-color); }
@@ -102,6 +115,51 @@ body { font-size: 16px; } /* accessibility: minimum 16px */
 /* Out animations: translate and fade */
 .card.out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; }
 .card.out-right { transform: translateX(120%) rotate(10deg); opacity: 0; }
+
+/* Animation and stacking: perspective gives a 3D depth effect. The transitions
+   are adapted from the CodePen example (https://codepen.io/Taluska/pen/LEEjBgz)
+   — we use translateX + rotate for off-screen motion and a slight rotateY for depth.
+   This comment documents the adaptation so future maintainers can understand the source. */
+.card-container { perspective: 1200px; }
+.card { transition: transform 0.5s ease-out, opacity 0.45s ease-out; }
+
+/* Stacked deck cards behind the main card */
+.deck-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
+  transform: translate(-50%, -50%) scale(0.96) translateY(10px);
+  opacity: 0.9;
+  z-index: 0;
+}
+
+/* Slightly different offsets for multiple deck layers to create layered look */
+.deck-card:nth-of-type(1) { transform: translate(-50%, -50%) scale(0.94) translateY(18px) rotate(-2deg); }
+.deck-card:nth-of-type(2) { transform: translate(-50%, -50%) scale(0.92) translateY(30px) rotate(2deg); }
+
+/* Ensure main card is on top */
+#question-card { z-index: 2; }
+
+/* When card is swiped out, rotate and translate with a 3D feel */
+.card.out-left { transform: translateX(-140vw) rotate(-15deg) rotateY(-15deg); opacity: 0; }
+.card.out-right { transform: translateX(140vw) rotate(15deg) rotateY(15deg); opacity: 0; }
+
+/* When a new card enters, slightly scale up from the stack and fade in */
+.card.enter { transform: translateY(12px) scale(0.98); opacity: 0; }
+.card.enter-active { transform: translateY(0) scale(1); opacity: 1; transition: transform 320ms ease-out, opacity 260ms ease-out; }
+
+/* Branding text at bottom-center inside card */
+.card-brand {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  color: #D3D3D3; /* light gray branding */
+  font-family: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+}
 
 /* New card enters with fade-in + slide-up */
 .card.enter {

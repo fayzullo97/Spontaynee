@@ -30,9 +30,18 @@
     <main class="main" role="main">
       <!-- Card container: holds the single visible card -->
       <div id="card-container" class="card-container" aria-live="polite">
-        <!-- Card element (text is inserted dynamically). Keep ids used by app.js unchanged. -->
+        <!-- Stacked decorative cards behind the main interactive card.
+             These are visual only (aria-hidden) and create a layered stack effect. -->
+        <article class="card deck-card" aria-hidden="true"></article>
+        <article class="card deck-card" aria-hidden="true"></article>
+
+        <!-- Main interactive card (used by app.js). Keep IDs intact so JS continues to work. -->
         <article id="question-card" class="card" tabindex="0" aria-label="Question card">
+          <!-- Question text injected by app.js -->
           <p id="question-text" class="question-text">Welcome to Randomee — press Start to begin.</p>
+
+          <!-- Branding text at the bottom-center of the card -->
+          <div class="card-brand" aria-hidden="true">Randomee</div>
         </article>
       </div>
 
