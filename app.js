@@ -263,10 +263,47 @@ function swipeToNext(direction) {
       questionCard.style.transform = '';
       questionCard.style.opacity = '';
       questionCard.style.transition = '';
-    }, 20);
 
-    // Update the main card's text to the deck's question and show it with enter animation
-    displayNewQuestion(topDeckText, {enter: true});
+      // Remove the old swiped card from the DOM so it doesn't interfere
+      // and create a fresh main card element that will display the promoted question.
+      const oldCard = questionCard;
+      const container = document.getElementById('card-container');
+
+      // Build new card element
+      const newCard = document.createElement('article');
+      newCard.className = 'card';
+      newCard.id = 'question-card';
+      newCard.tabIndex = 0;
+      newCard.setAttribute('aria-label', 'Question card');
+
+      const p = document.createElement('p');
+      p.id = 'question-text';
+      p.className = 'question-text';
+      p.textContent = topDeckText;
+      newCard.appendChild(p);
+
+      const brand = document.createElement('div');
+      brand.className = 'card-brand';
+      brand.setAttribute('aria-hidden', 'true');
+      brand.textContent = 'Randomee';
+      newCard.appendChild(brand);
+
+      // Insert new card into the container (on top of deck cards)
+      container.appendChild(newCard);
+
+      // Remove old card from DOM
+      if (oldCard && oldCard.parentNode) oldCard.parentNode.removeChild(oldCard);
+
+      // Update references to point to the new card and its text node
+      questionCard = newCard;
+      questionText = document.getElementById('question-text');
+
+      // Bind event listeners to the newly created card so it is interactive
+      bindCardEvents(questionCard);
+
+      // Trigger enter animation for the new card
+      displayNewQuestion(topDeckText, {enter: true});
+    }, 20);
 
     // Shift deck: move deckQuestions[1] -> deckQuestions[0], then refill deckQuestions[1]
     if (deckQuestions.length >= 2) {
@@ -333,6 +370,42 @@ function onPointerUp() {
   }
   startX = 0;
   currentX = 0;
+}
+
+/* Bind touch/mouse/keyboard events to the active card element. We re-bind
+   this when we replace the card DOM node so interactions keep working. */
+function bindCardEvents(card) {
+  if (!card) return;
+
+  // Touch
+  card.addEventListener('touchstart', (e) => {
+    if (!isStarted) return;
+    if (e.touches.length === 1) onPointerDown(e.touches[0].clientX);
+  });
+  card.addEventListener('touchmove', (e) => {
+    if (!isStarted) return;
+    if (e.touches.length === 1) {
+      onPointerMove(e.touches[0].clientX);
+      e.preventDefault();
+    }
+  }, { passive: false });
+  card.addEventListener('touchend', () => { if (!isStarted) return; onPointerUp(); });
+
+  // Mouse
+  card.addEventListener('mousedown', (e) => { if (!isStarted) return; onPointerDown(e.clientX); });
+  // Click to show next question (optional)
+  card.addEventListener('click', () => { if (!isStarted) return; displayNewQuestion(getRandomQuestion(), {enter:true}); });
+
+  // Keyboard
+  card.addEventListener('keydown', (e) => {
+    if (!isStarted) {
+      if (e.key === 'Enter' || e.key === ' ') startApp();
+      return;
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      swipeToNext(e.key === 'ArrowLeft' ? 'left' : 'right');
+    }
+  });
 }
 
 /* Touch events (mobile) */
