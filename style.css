@@ -1,214 +1,95 @@
-/* Global variables and Telegram theme integration fallbacks.
-   These values will be overridden by app.js using tg.themeParams when possible. */
-:root{
-  --tg-theme-bg-color: #F5F5F5;    /* warm gray background */
-  --tg-theme-text-color: #1E3A8A;  /* deep blue text */
-  --card-bg: #FFC1CC;              /* soft pink card */
-  --card-border: #FFFFFF;          /* white border */
-  --accent: #1E3A8A;
-  --gap: 8px;
-  --padding: 16px;
-  --font-family: 'Noto Sans', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+*,
+*::after,
+*::before {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
-/* Reset and base */
-* { box-sizing: border-box; }
-html,body,#app { height: 100%; margin:0; padding:0; background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); font-family: var(--font-family); -webkit-font-smoothing:antialiased; }
-body { font-size: 16px; } /* accessibility: minimum 16px */
-
-/* App layout: header(10%), main(80%), footer(10%) */
-.app { display: flex; flex-direction: column; height: 100vh; gap: var(--gap); padding: var(--padding); }
-
-/* Header */
-.header { flex: 0 0 10%; display:flex; align-items:center; justify-content:center; }
-#title { margin:0; font-weight:700; font-size:20px; color: #FFFFFF; }
-
-/* Ensure header is a positioned container so top-right counter can be absolutely placed */
-.header { position: relative; }
-
-/* Card counter in the top-right corner */
-.card-counter {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  font-family: var(--font-family);
-  font-weight: 700; /* Noto Sans Bold 700 */
-  font-size: 14px;
-  color: #FFFFFF; /* white text */
-  background: transparent;
+body {
+	display: grid;
+	place-content: center;
+	min-block-size: 100vh;
+	overflow-x: clip;
+	background: linear-gradient(45deg, hsl(203 7 89), hsl(198 13 71));
 }
 
-/* Main body */
-.main { flex:1 1 80%; display:flex; flex-direction:column; gap: var(--gap); align-items:center; justify-content:flex-start; position:relative; }
+.card-stack {
+	width: 16rem;
+	height: 22rem;
+	position: relative;
+	display: grid;
+	grid-auto-flow: column;
+	place-content: center;
+	user-select: none;
+	touch-action: none;
+	transform-style: preserve-3d;
+}
 
-/* Card container centers the card */
-.card-container { width:100%; max-width:420px; height:100%; display:flex; align-items:center; justify-content:center; padding-top: 8px; position:relative; }
+:root {
+	--card-perspective: 500px;
+	--card-z-offset: 12px;
+	--card-y-offset: 7px;
+	--card-max-z-index: 100;
+	--card-swap-duration: 0.3s;
+	--swipe-x: 0px;
+	--swipe-rotate: 0deg;
+}
 
-/* Card element: rounded, bordered, padding */
-/* Card design: white card with black text, centered. Stacked layout for swipe effect. */
 .card {
-  /* New card sizing: 50% of viewport width and 2:3 height ratio (height = 1.5 * width).
-    This keeps cards responsive while following the requested 2:3 ratio. */
-  width: 70vw; /* 50% of the viewport width */
-  height: 105vw; /* 1.5 * 50vw = 75vw to achieve 2:3 ratio */
-  max-width: 520px;
-  max-height: 780px;
-  background: #FFFFFF; /* white card background per design */
-  color: #000000; /* black text for questions */
-  border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 20px; /* 20px rounded corners as requested */
-  padding: 16px; /* 16px inner padding */
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  transition: transform 300ms cubic-bezier(.22,.9,.32,1), opacity 220ms ease;
-  will-change: transform, opacity;
-  user-select: none;
-  -webkit-user-select:none;
-  touch-action: pan-y;
-  outline: none;
-  position: relative;
+	cursor: grab;
+	background-color: #eee;
+	display: grid;
+	place-content: center;
+	place-self: center;
+	position: absolute;
+	width: calc(100% - 2rem);
+	height: calc(100% - 2rem);
+	border: 1px solid #99a;
+	border-radius: 0.75rem;
+	z-index: calc(var(--card-max-z-index) - var(--i));
+	transform: perspective(var(--card-perspective))
+		translateZ(calc(-1 * var(--card-z-offset) * var(--i)))
+		translateY(calc(var(--card-y-offset) * var(--i)))
+		translateX(var(--swipe-x, 0px)) rotateY(var(--swipe-rotate, 0deg));
+	transition: transform var(--card-swap-duration) ease;
+	will-change: transform;
+	box-shadow: 0 2px 2px #0003;
 }
 
-/* Question text */
-.question-text {
-  /* Use Gilroy Bold for question text if available, with Noto Sans as fallback.
-     Using 36px size for strong emphasis per design requirements. */
-  font-family: 'Gilroy', 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-  font-weight: 700; /* Bold-style for Gilroy Bold appearance */
-  font-size: 32px;
-  line-height: 1.2;
-  color: #000000;
-  padding: 8px;
-  text-align: center;
+.icon {
+	aspect-ratio: 1;
+	block-size: 6em;
+	place-self: center;
+
+	svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+		fill: #fff;
+		filter: drop-shadow(0px 2px 3px #0007);
+	}
 }
 
-/* Notes */
-.notes-label { align-self:flex-start; font-weight:600; margin-top:8px; font-size:14px; color:var(--tg-theme-text-color); }
-.notes {
-  width:100%;
-  max-width:420px;
-  border-radius:8px;
-  border:1px solid rgba(0,0,0,0.08);
-  padding:12px;
-  resize:vertical;
-  font-size:16px;
-  background: #fff;
+.card:active {
+	cursor: grabbing;
 }
 
-/* Footer */
-.footer { flex: 0 0 10%; display:flex; align-items:center; justify-content:center; gap:12px; }
-.back-button {
-  background: transparent;
-  border: 2px solid var(--accent);
-  color: var(--accent);
-  padding:8px 16px;
-  border-radius: 8px;
-  font-weight:600;
-  cursor:pointer;
+.a {
+	background: linear-gradient(45deg, #32de84, #deb);
 }
-
-/* Card swipe states */
-/* When card is swiping, we add inline transform; CSS handles transition */
-/* Out animations: translate and fade */
-.card.out-left { transform: translateX(-120%) rotate(-10deg); opacity: 0; }
-.card.out-right { transform: translateX(120%) rotate(10deg); opacity: 0; }
-
-/* Animation and stacking: perspective gives a 3D depth effect. The transitions
-   are adapted from the CodePen example (https://codepen.io/Taluska/pen/LEEjBgz)
-   — we use translateX + rotate for off-screen motion and a slight rotateY for depth.
-   This comment documents the adaptation so future maintainers can understand the source. */
-.card-container { perspective: 1200px; }
-.card { transition: transform 0.5s ease-out, opacity 0.45s ease-out; }
-
-/* Stacked deck cards behind the main card */
-.deck-card {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform-origin: center center;
-  transform: translate(-50%, -50%) scale(0.96) translateY(10px);
-  opacity: 0.9;
-  z-index: 0;
+.b {
+	background: linear-gradient(45deg, #cf8bf3, #fdb99b);
 }
-
-/* Slightly different offsets for multiple deck layers to create layered look */
-.deck-card:nth-of-type(1) { transform: translate(-50%, -50%) scale(0.94) translateY(18px) rotate(-2deg); }
-.deck-card:nth-of-type(2) { transform: translate(-50%, -50%) scale(0.92) translateY(30px) rotate(2deg); }
-
-/* Ensure main card is on top */
-#question-card { z-index: 2; }
-
-/* When card is swiped out, rotate and translate with a 3D feel */
-.card.out-left { transform: translateX(-140vw) rotate(-15deg) rotateY(-15deg); opacity: 0; }
-.card.out-right { transform: translateX(140vw) rotate(15deg) rotateY(15deg); opacity: 0; }
-
-/* When a new card enters, slightly scale up from the stack and fade in */
-.card.enter { transform: translateY(12px) scale(0.98); opacity: 0; }
-.card.enter-active { transform: translateY(0) scale(1); opacity: 1; transition: transform 320ms ease-out, opacity 260ms ease-out; }
-
-/* Branding text at bottom-center inside card */
-.card-brand {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
-  color: #D3D3D3; /* light gray branding */
-  font-family: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-  font-size: 16px;
-  font-weight: 400;
+.c {
+	background: linear-gradient(45deg, #ea52ca, #8ed5f0);
 }
-
-/* Make deck cards animate when the top card is swiped. The .pop class
-   transitions the decorative deck card into the main position to give
-   the visual effect that the next card comes out from behind. */
-.deck-card { transition: transform 0.35s ease-out, opacity 0.28s ease-out; }
-.deck-card.pop {
-  transform: translate(-50%, -50%) scale(1) translateY(0) rotate(0);
-  opacity: 1;
-  z-index: 1; /* put it above other deck layers but below the main card during animation */
+.d {
+	background: linear-gradient(45deg, #967edf, #89ffe3);
 }
-
-/* When main card is removed after swipe, hide it to prevent it snapping back */
-.card.swiped-away { visibility: hidden; pointer-events: none; opacity: 0; }
-
-/* New card enters with fade-in + slide-up */
-.card.enter {
-  transform: translateY(8px);
-  opacity: 0;
+.e {
+	background: linear-gradient(45deg, #4ecde2, #faffd2);
 }
-.card.enter-active {
-  transform: translateY(0);
-  opacity: 1;
-  transition: transform 220ms ease, opacity 200ms ease;
+.f {
+	background: linear-gradient(45deg, #a4ffbd, #ffd89b);
 }
-
-/* Focus style for keyboard users */
-.card:focus { box-shadow: 0 0 0 4px rgba(30,58,138,0.12); }
-
-/* Responsiveness */
-@media (min-width:600px) {
-  .card { height:60%; }
-  body { font-size:16px; }
-}
-
-/* Swipe instruction at the bottom-center */
-.swipe-instruction {
-  position: absolute;
-  bottom: 18px; /* slightly above footer */
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255,255,255,0.4); /* white at 40% opacity */
-  font-size: 16px; /* medium size */
-  font-weight: 400; /* Noto Sans Regular 400 */
-  font-family: var(--font-family);
-}
-
-/* Main screen background: dark ocean blue. We still allow Telegram theme to override these via tg.themeParams in app.js */
-/* Note: This design adapts to Telegram's theme parameters when provided for dark/light mode flexibility. */
-body, html { background: #1A2A44; }
-
-/* Ensure high contrast and minimum font-size for accessibility */
-body { color: #FFFFFF; }

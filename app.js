@@ -1,481 +1,108 @@
-// ...existing code...
-/*
-  app.js
-  - Initializes Telegram WebApp SDK
-  - Sets up MainButton (Start) and BackButton (Back)
-  - Displays a swipeable card with a random question from a hardcoded list of 100 questions
-  - Handles touch and mouse gestures for swipe-left / swipe-right to get a new random question
-*/
+document.addEventListener("DOMContentLoaded", () => {
+	const cardStack = document.querySelector(".card-stack");
+	let cards = [...document.querySelectorAll(".card")];
+	let isSwiping = false;
+	let startX = 0;
+	let currentX = 0;
+	let animationFrameId = null;
 
-/* ========== Telegram initialization ========== */
-const tg = window.Telegram.WebApp; // Telegram WebApp SDK object
+	const getDurationFromCSS = (
+		variableName,
+		element = document.documentElement
+	) => {
+		const value = getComputedStyle(element)
+			?.getPropertyValue(variableName)
+			?.trim();
+		if (!value) return 0;
+		if (value.endsWith("ms")) return parseFloat(value);
+		if (value.endsWith("s")) return parseFloat(value) * 1000;
+		return parseFloat(value) || 0;
+	};
 
-// Make the webapp ready and expand available area in chat (best for full-screen)
-tg.ready();
-tg.expand(); // ask Telegram to expand the WebApp view for more vertical space
+	const getActiveCard = () => cards[0];
 
-// Apply Telegram theme parameters (if provided) to CSS variables for consistent look
-if (tg.themeParams) {
-  const root = document.documentElement;
-  // Map a few theme params into our CSS variables (safe defaults already in CSS)
-  if (tg.themeParams.bg_color) root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
-  if (tg.themeParams.text_color) root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
-  // You can map more themeParams if needed
-}
+	const updatePositions = () => {
+		cards.forEach((card, i) => {
+			card.style.setProperty("--i", i + 1);
+			card.style.setProperty("--swipe-x", "0px");
+			card.style.setProperty("--swipe-rotate", "0deg");
+			card.style.opacity = "1";
+		});
+	};
 
-/* ========== UI elements ========== */
-const mainButton = tg.MainButton; // Telegram MainButton for "Start"
-const backButton = tg.BackButton; // Telegram BackButton for in-app "Back"
+	const applySwipeStyles = (deltaX) => {
+		const card = getActiveCard();
+		if (!card) return;
+		card.style.setProperty("--swipe-x", `${deltaX}px`);
+		card.style.setProperty("--swipe-rotate", `${deltaX * 0.2}deg`);
+		card.style.opacity = 1 - Math.min(Math.abs(deltaX) / 100, 1) * 0.75;
+	};
 
-const questionCard = document.getElementById('question-card');
-const questionText = document.getElementById('question-text');
-const notesField = document.getElementById('notes');
-const localBackButton = document.getElementById('back-button'); // in-page button as fallback
+	const handleStart = (clientX) => {
+		if (isSwiping) return;
+		isSwiping = true;
+		startX = currentX = clientX;
+		const card = getActiveCard();
+		card && (card.style.transition = "none");
+	};
 
-// Deck card elements (visual stack behind the main card)
-const deckCards = Array.from(document.querySelectorAll('.deck-card'));
-const deckQuestions = deckCards.map(card => card.querySelector('.deck-question'));
+	const handleMove = (clientX) => {
+		if (!isSwiping) return;
+		cancelAnimationFrame(animationFrameId);
+		animationFrameId = requestAnimationFrame(() => {
+			currentX = clientX;
+			const deltaX = currentX - startX;
+			applySwipeStyles(deltaX);
 
-// Show the Telegram MainButton labeled "Start"
-mainButton.setText('Start');
-mainButton.show();
+			if (Math.abs(deltaX) > 50) handleEnd();
+		});
+	};
 
-// When main button is clicked, start the app
-mainButton.onClick(() => {
-  startApp();
+	const handleEnd = () => {
+		if (!isSwiping) return;
+		cancelAnimationFrame(animationFrameId);
+
+		const deltaX = currentX - startX;
+		const threshold = 50;
+		const duration = getDurationFromCSS("--card-swap-duration");
+		const card = getActiveCard();
+
+		if (card) {
+			card.style.transition = `transform ${duration}ms ease, opacity ${duration}ms ease`;
+
+			if (Math.abs(deltaX) > threshold) {
+				const direction = Math.sign(deltaX);
+
+				card.style.setProperty("--swipe-x", `${direction * 300}px`);
+				card.style.setProperty("--swipe-rotate", `${direction * 20}deg`);
+
+				setTimeout(() => {
+					card.style.setProperty("--swipe-rotate", `${-direction * 20}deg`);
+				}, duration * 0.5);
+
+				setTimeout(() => {
+					cards = [...cards.slice(1), card];
+					updatePositions();
+				}, duration);
+			} else {
+				applySwipeStyles(0);
+			}
+		}
+
+		isSwiping = false;
+		startX = currentX = 0;
+	};
+
+	const addEventListeners = () => {
+		cardStack?.addEventListener("pointerdown", ({ clientX }) =>
+			handleStart(clientX)
+		);
+		cardStack?.addEventListener("pointermove", ({ clientX }) =>
+			handleMove(clientX)
+		);
+		cardStack?.addEventListener("pointerup", handleEnd);
+	};
+
+	updatePositions();
+	addEventListeners();
 });
-
-/* Back button behavior:
-   - Telegram BackButton will close the Web App or go back depending on host (we just show it)
-   - Also wire the in-page Back button as a fallback for environments without Telegram SDK
-*/
-try { backButton.show(); } catch (e) { /* ignore if not supported */ }
-
-// In-page Back button (fallback)
-localBackButton.addEventListener('click', () => {
-  // If Telegram supports close, use it
-  if (tg.close) tg.close();
-  else alert('Back: close the app or navigate back in Telegram.');
-});
-
-/* ========== Questions data (100 hardcoded questions) ========== */
-/* These are playful, flirty, and thought-provoking prompts for couples. */
-const QUESTIONS = [
-  "What’s the first thing you noticed about me?",
-  "What’s your favorite way to spend a lazy Sunday together?",
-  "If we met again, how would you flirt with me?",
-  "What’s one small thing I do that makes you smile?",
-  "What memory of us makes you laugh out loud?",
-  "What’s a secret hobby you’d like us to try together?",
-  "Describe our perfect cozy night in.",
-  "What’s the nicest compliment you’ve ever received from me?",
-  "What’s one dream you hope we share in the future?",
-  "If our relationship had a theme song, what would it be?",
-  "What’s a question you’ve always wanted to ask me but never did?",
-  "What’s a smell that reminds you of me?",
-  "What’s one adventurous date you’d like to go on?",
-  "What do you think my superpower is in our relationship?",
-  "If we could teleport for a weekend, where would we go?",
-  "What’s one habit I have that you secretly adore?",
-  "When do you feel the most connected to me?",
-  "What’s a silly nickname you think I should have?",
-  "What’s the most romantic thing you imagine us doing someday?",
-  "If you had to cook one meal for me forever, what would it be?",
-  "What’s a movie that reminds you of us?",
-  "What’s a playful dare you'd give me right now?",
-  "What’s the kindest thing someone has done for you that you want me to know about?",
-  "What small ritual would you like us to start together?",
-  "Which of my quirks makes you smile the most?",
-  "What’s a fantasy vacation just for us?",
-  "If you drew our relationship as a picture, what colors would you choose?",
-  "What’s an embarrassing moment we can laugh about together?",
-  "When do you feel most proud of us?",
-  "What’s one thing you want to learn from me?",
-  "What was your first impression of my sense of humor?",
-  "What is one word that sums up us?",
-  "If you could give our future self one piece of advice, what would it be?",
-  "What little detail about me do you wish you had noticed earlier?",
-  "What’s one question that would surprise me if you asked it?",
-  "What scent or place instantly brings back thoughts of us?",
-  "What’s a tradition you’d like to create together?",
-  "What everyday thing with me feels like an adventure?",
-  "Which trait of mine do you find most comforting?",
-  "What hobby would you want us to master together?",
-  "What’s a romantic gesture that doesn’t involve money?",
-  "If we starred in a book, what would the title be?",
-  "What’s something brave you’d love to try together?",
-  "What’s a childhood memory you’d like to share with me?",
-  "What’s one thing you’d keep private between just us?",
-  "What’s the sweetest thing I’ve ever done for you?",
-  "What would you whisper to me on a quiet morning?",
-  "What's a question you'd like to answer honestly right now?",
-  "How do you want to feel when you think about us in 10 years?",
-  "What’s one little surprise I could do that would make your day?",
-  "If we could learn one language together, which would it be and why?",
-  "What’s a hobby you think would bring us closer?",
-  "What’s the funniest thing we’ve done together?",
-  "What’s one challenge you want to face together?",
-  "What’s a scent you’d like to recreate for a special night?",
-  "What’s a small daily habit that would strengthen us?",
-  "What’s a secret talent you haven’t told me about?",
-  "What’s one place that feels like ‘our spot’?",
-  "What do you think our grand adventure would look like?",
-  "What’s the most thoughtful gift I could give you?",
-  "If we re-created our first date, what would we change?",
-  "What’s something you admire about how I handle problems?",
-  "What question would make you blush if I asked it?",
-  "What childhood dream would you like us to explore together?",
-  "What’s a playful rule we could invent for our relationship?",
-  "What’s the kindest thing you’d like me to do without asking?",
-  "What’s one truth about us that makes you smile?",
-  "What’s the most romantic sunset scenario you imagine for us?",
-  "What habit of mine makes life easier for you?",
-  "If we could time-travel together, what era would we visit and why?",
-  "What style of date makes you feel most loved?",
-  "What’s a compliment you want to hear more from me?",
-  "What is a fear you’d like us to face together?",
-  "What is a secret you trust me with?",
-  "What is one silly debate we should have just for fun?",
-  "What’s the best way I can support your day-to-day life?",
-  "What imaginary pet would we have and what would we name it?",
-  "What’s the one question that always sparks great conversation between us?",
-  "What gift could I give that would be meaningful because of the memory behind it?",
-  "What’s a quiet activity you enjoy most with me?",
-  "If we built a tiny house, what would be the most important feature?",
-  "What's the funniest way to cheer you up after a long day?",
-  "If we made a pact for a year, what playful rule would you choose?",
-  "What’s a story about you that I should know by heart?",
-  "What’s one way we can celebrate small wins together?",
-  "If we created a secret handshake, what move would you add?",
-  "What’s a question about love you think we should explore together?",
-  "What’s the most romantic rainy-day plan you can imagine for us?"
-];
-
-/* ========== Utility: get random question but avoid immediate repeats ========== */
-let previousIndex = -1;
-function getRandomQuestion() {
-  if (QUESTIONS.length === 0) return "No questions available.";
-  let idx;
-  do {
-    idx = Math.floor(Math.random() * QUESTIONS.length);
-  } while (QUESTIONS.length > 1 && idx === previousIndex);
-  previousIndex = idx;
-  return QUESTIONS[idx];
-}
-
-/* ========== App state and gesture handling ========== */
-let isStarted = false;
-let startX = 0;
-let currentX = 0;
-let isDragging = false;
-
-// Threshold in px to trigger a swipe (mobile-friendly)
-const SWIPE_THRESHOLD = 80;
-
-// Start the app: hide MainButton, show first question, set focus
-function startApp() {
-  isStarted = true;
-  try { mainButton.hide(); } catch (e) { /* ignore if not supported */ }
-
-  // Show the first random question, with small enter animation
-  const first = getRandomQuestion();
-  displayNewQuestion(first, {enter: true});
-
-  // Preload the next two questions into the deck so it looks like they come from underneath
-  populateDeck();
-
-  // Ensure the card can be focused for accessibility
-  questionCard.focus();
-}
-
-/* Populate the decorative deck cards with upcoming questions. We ensure they are
-   different from the currently visible question to avoid immediate repeats. */
-function populateDeck() {
-  for (let i = 0; i < deckQuestions.length; i++) {
-    let next = getRandomQuestion();
-    // If deck already contains the same text, keep trying (small guard)
-    let attempts = 0;
-    while (deckQuestions.some(d => d.textContent === next) && attempts < 10) {
-      next = getRandomQuestion();
-      attempts++;
-    }
-    deckQuestions[i].textContent = next;
-  }
-}
-
-/* Display question and manage enter animation */
-function displayNewQuestion(text, opts = {}) {
-  // Remove transitional classes
-  questionCard.classList.remove('out-left', 'out-right', 'enter', 'enter-active');
-  // Temporarily set opacity to 0 for enter animation if needed
-  if (opts.enter) {
-    questionCard.classList.add('enter');
-    // allow styles to apply before activating transition
-    requestAnimationFrame(() => {
-      questionText.textContent = text;
-      questionCard.classList.add('enter-active');
-    });
-    // remove enter classes after animation
-    setTimeout(() => {
-      questionCard.classList.remove('enter', 'enter-active');
-    }, 300);
-  } else {
-    // Normal replace
-    questionText.textContent = text;
-  }
-}
-
-/* Animate card out (direction: 'left' or 'right') and then show new question */
-function swipeToNext(direction) {
-  // Make the deck card 'pop' into place while the main card animates out.
-  if (deckCards[0]) deckCards[0].classList.add('pop');
-
-  // Disable interactions on the main card immediately so the user can't re-swipe
-  questionCard.style.pointerEvents = 'none';
-
-  // Animate the main card off-screen using inline transforms and transitions.
-  // Using inline styles for this animation avoids conflicts with the inline transform
-  // set during dragging, which was causing the card to snap/return to center.
-  const targetTransform = direction === 'left'
-    ? 'translateX(-140vw) rotate(-15deg) rotateY(-15deg)'
-    : 'translateX(140vw) rotate(15deg) rotateY(15deg)';
-
-  // Set an explicit transition so this animation runs even if inline styles
-  // were previously used during dragging.
-  questionCard.style.transition = 'transform 0.5s ease-out, opacity 0.45s ease-out';
-  // Apply the target transform and fade out
-  questionCard.style.transform = targetTransform;
-  questionCard.style.opacity = '0';
-
-  // After animation completes, promote the top deck question into the main card
-  setTimeout(() => {
-    // Grab the next question from the first deck card (the one visually closest)
-    const topDeckText = deckQuestions[0].textContent || getRandomQuestion();
-
-    // Hide the old main card (we'll reset inline styles shortly) to prevent it snapping back into view
-    questionCard.classList.add('swiped-away');
-
-    // Reset inline styles that moved the old card off-screen so the newly-updated
-    // main card can use the normal CSS enter animation. We reset after a short
-    // microtask to avoid interfering with the ongoing animation.
-    setTimeout(() => {
-      // Clear inline transform/opacity/transition so CSS classes control the next enter animation
-      questionCard.style.transform = '';
-      questionCard.style.opacity = '';
-      questionCard.style.transition = '';
-
-      // Remove the old swiped card from the DOM so it doesn't interfere
-      // and create a fresh main card element that will display the promoted question.
-      const oldCard = questionCard;
-      const container = document.getElementById('card-container');
-
-      // Build new card element
-      const newCard = document.createElement('article');
-      newCard.className = 'card';
-      newCard.id = 'question-card';
-      newCard.tabIndex = 0;
-      newCard.setAttribute('aria-label', 'Question card');
-
-      const p = document.createElement('p');
-      p.id = 'question-text';
-      p.className = 'question-text';
-      p.textContent = topDeckText;
-      newCard.appendChild(p);
-
-      const brand = document.createElement('div');
-      brand.className = 'card-brand';
-      brand.setAttribute('aria-hidden', 'true');
-      brand.textContent = 'Randomee';
-      newCard.appendChild(brand);
-
-      // Insert new card into the container (on top of deck cards)
-      container.appendChild(newCard);
-
-      // Remove old card from DOM
-      if (oldCard && oldCard.parentNode) oldCard.parentNode.removeChild(oldCard);
-
-      // Update references to point to the new card and its text node
-      questionCard = newCard;
-      questionText = document.getElementById('question-text');
-
-      // Bind event listeners to the newly created card so it is interactive
-      bindCardEvents(questionCard);
-
-      // Trigger enter animation for the new card
-      displayNewQuestion(topDeckText, {enter: true});
-    }, 20);
-
-    // Shift deck: move deckQuestions[1] -> deckQuestions[0], then refill deckQuestions[1]
-    if (deckQuestions.length >= 2) {
-      deckQuestions[0].textContent = deckQuestions[1].textContent;
-      // Refill the last deck slot with a fresh question
-      deckQuestions[1].textContent = getRandomQuestion();
-    } else if (deckQuestions.length === 1) {
-      // Only one deck slot: just refill it
-      deckQuestions[0].textContent = getRandomQuestion();
-    }
-
-    // Remove the pop class after a short delay so the deck returns to normal stack state
-    setTimeout(() => {
-      if (deckCards[0]) deckCards[0].classList.remove('pop');
-    }, 380);
-
-    // Restore the main card's interaction and visibility after the enter animation
-    setTimeout(() => {
-      questionCard.classList.remove('swiped-away');
-      questionCard.style.pointerEvents = '';
-      // restore focus
-      questionCard.focus();
-    }, 420);
-  }, 520); // wait slightly longer than CSS transition (0.5s) so animation completes
-}
-
-/* ========== Touch and Mouse event handlers for swipe ========== */
-function onPointerDown(clientX) {
-  isDragging = true;
-  startX = clientX;
-  currentX = 0;
-  // Stop any ongoing transitions so the card follows the pointer exactly
-  questionCard.style.transition = 'none';
-}
-
-function onPointerMove(clientX) {
-  if (!isDragging) return;
-  currentX = clientX - startX;
-  // Use CSS variables for swipe position and rotation to avoid conflicts
-  // with CSS class transforms. This mirrors the CodePen approach.
-  const rotate = Math.max(-25, Math.min(25, (currentX / 20)));
-  questionCard.style.setProperty('--swipe-x', `${currentX}px`);
-  questionCard.style.setProperty('--swipe-rotate', `${rotate}deg`);
-  // Fade slightly as the card moves out
-  const fade = 1 - Math.min(Math.abs(currentX) / (window.innerWidth / 3), 0.75);
-  questionCard.style.opacity = String(fade);
-}
-
-function onPointerUp() {
-  if (!isDragging) return;
-  isDragging = false;
-  // Determine whether this was a swipe or a cancelled drag
-  if (Math.abs(currentX) > SWIPE_THRESHOLD) {
-    const dir = currentX < 0 ? 'left' : 'right';
-    swipeToNext(dir);
-  } else {
-    // Not far enough: spring back to center with a smooth transition
-    questionCard.style.transition = 'transform 300ms cubic-bezier(.22,.9,.32,1), opacity 220ms ease';
-    questionCard.style.setProperty('--swipe-x', '0px');
-    questionCard.style.setProperty('--swipe-rotate', '0deg');
-    questionCard.style.opacity = '1';
-    // Clear inline transition after it finishes so future drags are immediate
-    setTimeout(() => { questionCard.style.transition = ''; }, 320);
-  }
-  startX = 0;
-  currentX = 0;
-}
-
-/* Bind touch/mouse/keyboard events to the active card element. We re-bind
-   this when we replace the card DOM node so interactions keep working. */
-function bindCardEvents(card) {
-  if (!card) return;
-
-  // Touch
-  card.addEventListener('touchstart', (e) => {
-    if (!isStarted) return;
-    if (e.touches.length === 1) onPointerDown(e.touches[0].clientX);
-  });
-  card.addEventListener('touchmove', (e) => {
-    if (!isStarted) return;
-    if (e.touches.length === 1) {
-      onPointerMove(e.touches[0].clientX);
-      e.preventDefault();
-    }
-  }, { passive: false });
-  card.addEventListener('touchend', () => { if (!isStarted) return; onPointerUp(); });
-
-  // Mouse
-  card.addEventListener('mousedown', (e) => { if (!isStarted) return; onPointerDown(e.clientX); });
-  // Click to show next question (optional)
-  card.addEventListener('click', () => { if (!isStarted) return; displayNewQuestion(getRandomQuestion(), {enter:true}); });
-
-  // Keyboard
-  card.addEventListener('keydown', (e) => {
-    if (!isStarted) {
-      if (e.key === 'Enter' || e.key === ' ') startApp();
-      return;
-    }
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      swipeToNext(e.key === 'ArrowLeft' ? 'left' : 'right');
-    }
-  });
-}
-
-/* Touch events (mobile) */
-questionCard.addEventListener('touchstart', (e) => {
-  if (!isStarted) return;
-  if (e.touches.length === 1) onPointerDown(e.touches[0].clientX);
-});
-questionCard.addEventListener('touchmove', (e) => {
-  if (!isStarted) return;
-  if (e.touches.length === 1) {
-    onPointerMove(e.touches[0].clientX);
-    e.preventDefault(); // prevent scrolling while swiping
-  }
-}, { passive: false });
-questionCard.addEventListener('touchend', () => {
-  if (!isStarted) return;
-  onPointerUp();
-});
-
-/* Mouse events for desktop users */
-questionCard.addEventListener('mousedown', (e) => {
-  if (!isStarted) return;
-  onPointerDown(e.clientX);
-});
-window.addEventListener('mousemove', (e) => {
-  if (!isStarted) return;
-  onPointerMove(e.clientX);
-});
-window.addEventListener('mouseup', () => {
-  if (!isStarted) return;
-  onPointerUp();
-});
-
-/* Keyboard support: Left/Right arrows or Enter for accessibility */
-questionCard.addEventListener('keydown', (e) => {
-  if (!isStarted) {
-    // If not started, pressing Enter starts the app
-    if (e.key === 'Enter' || e.key === ' ') startApp();
-    return;
-  }
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-    swipeToNext(e.key === 'ArrowLeft' ? 'left' : 'right');
-  }
-});
-
-/* Quick tap to show a new question (optional behavior) */
-questionCard.addEventListener('click', () => {
-  if (!isStarted) return;
-  // Quick tap shows next question (non-committal)
-  displayNewQuestion(getRandomQuestion(), {enter: true});
-});
-
-/* ========== Start prompt for users who haven't pressed MainButton (safety) ========== */
-// If app isn't started after 5 seconds, show a subtle hint in the card
-setTimeout(() => {
-  if (!isStarted) questionText.textContent = "Tap 'Start' (or press Enter) to begin Randomee.";
-}, 5000);
-
-/* ========== Security Note ==========
-  The Telegram WebApp may provide initData (tg.initData) for identifying the user.
-  IMPORTANT: initData must be validated on your server using HMAC-SHA-256 according to
-  Telegram docs. Do NOT trust initData on the client for authentication or sensitive logic.
-  Validate it on the backend with your bot token as described in:
-  https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
-*/
-
-/* ========== Optional: Use tg.initData if available (read-only on client) ========== */
-if (tg.initData) {
-  // We simply log it for debugging — don't rely on it for secure decisions on client-side
-  console.log('Telegram initData (client-side):', tg.initData);
-}
-
-/* End of app.js */
