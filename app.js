@@ -298,32 +298,38 @@ function onPointerDown(clientX) {
   isDragging = true;
   startX = clientX;
   currentX = 0;
-  // Stop any ongoing transitions
+  // Stop any ongoing transitions so the card follows the pointer exactly
   questionCard.style.transition = 'none';
 }
 
 function onPointerMove(clientX) {
   if (!isDragging) return;
   currentX = clientX - startX;
-  // Slight rotation based on movement for a playful effect
-  const rotate = Math.max(-15, Math.min(15, (currentX / 20)));
-  questionCard.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+  // Use CSS variables for swipe position and rotation to avoid conflicts
+  // with CSS class transforms. This mirrors the CodePen approach.
+  const rotate = Math.max(-25, Math.min(25, (currentX / 20)));
+  questionCard.style.setProperty('--swipe-x', `${currentX}px`);
+  questionCard.style.setProperty('--swipe-rotate', `${rotate}deg`);
+  // Fade slightly as the card moves out
+  const fade = 1 - Math.min(Math.abs(currentX) / (window.innerWidth / 3), 0.75);
+  questionCard.style.opacity = String(fade);
 }
 
 function onPointerUp() {
   if (!isDragging) return;
   isDragging = false;
-  // restore smooth transition for snap-back (if not swiped)
-  // We don't remove inline transition here; instead we set an appropriate transition
-  // so that returning to center animates smoothly when the swipe is cancelled.
+  // Determine whether this was a swipe or a cancelled drag
   if (Math.abs(currentX) > SWIPE_THRESHOLD) {
-    // Determine direction and animate out
     const dir = currentX < 0 ? 'left' : 'right';
     swipeToNext(dir);
   } else {
     // Not far enough: spring back to center with a smooth transition
-    questionCard.style.transition = 'transform 300ms cubic-bezier(.22,.9,.32,1)';
-    questionCard.style.transform = '';
+    questionCard.style.transition = 'transform 300ms cubic-bezier(.22,.9,.32,1), opacity 220ms ease';
+    questionCard.style.setProperty('--swipe-x', '0px');
+    questionCard.style.setProperty('--swipe-rotate', '0deg');
+    questionCard.style.opacity = '1';
+    // Clear inline transition after it finishes so future drags are immediate
+    setTimeout(() => { questionCard.style.transition = ''; }, 320);
   }
   startX = 0;
   currentX = 0;
