@@ -18,16 +18,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const COLS = 10;
     const ROWS = 20;
     const HIDDEN_ROWS = 2;
-    const BLOCK_SIZE = 32;
-    const NEXT_CANVAS_SIZE = 4 * BLOCK_SIZE;
-    const HOLD_CANVAS_SIZE = 4 * BLOCK_SIZE;
+    // CELL sizing will be computed dynamically to fit the viewport on mobile.
+    let BLOCK_SIZE = 32;
+    const DPR = window.devicePixelRatio || 1;
 
-    canvas.width = COLS * BLOCK_SIZE;
-    canvas.height = ROWS * BLOCK_SIZE;
-    nextCanvas.width = NEXT_CANVAS_SIZE;
-    nextCanvas.height = NEXT_CANVAS_SIZE;
-    holdCanvas.width = HOLD_CANVAS_SIZE;
-    holdCanvas.height = HOLD_CANVAS_SIZE;
+    function resizeCanvas() {
+        // Calculate a BLOCK_SIZE that fits within the viewport while keeping 10x20 aspect
+        const maxWidth = Math.min(window.innerWidth * 0.92, 420); // cap to avoid too-large on tablets
+        const maxHeight = Math.max(window.innerHeight * 0.6, 400);
+        const cellByWidth = Math.floor(maxWidth / COLS);
+        const cellByHeight = Math.floor(maxHeight / ROWS);
+        BLOCK_SIZE = Math.max(16, Math.min(cellByWidth || 32, cellByHeight || 32));
+
+        // Apply CSS pixel sizes
+        canvas.style.width = (COLS * BLOCK_SIZE) + 'px';
+        canvas.style.height = (ROWS * BLOCK_SIZE) + 'px';
+
+        // Set backing store size multiplied by DPR for crisp rendering
+        canvas.width = Math.round(COLS * BLOCK_SIZE * DPR);
+        canvas.height = Math.round(ROWS * BLOCK_SIZE * DPR);
+        context.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+        // Next and hold canvases
+        const sideSize = 4 * BLOCK_SIZE;
+        nextCanvas.style.width = sideSize + 'px';
+        nextCanvas.style.height = sideSize + 'px';
+        holdCanvas.style.width = sideSize + 'px';
+        holdCanvas.style.height = sideSize + 'px';
+        nextCanvas.width = Math.round(sideSize * DPR);
+        nextCanvas.height = Math.round(sideSize * DPR);
+        nextContext.setTransform(DPR, 0, 0, DPR, 0, 0);
+        holdCanvas.width = Math.round(sideSize * DPR);
+        holdCanvas.height = Math.round(sideSize * DPR);
+        holdContext.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+
+    // Initial resize and attach handlers
+    resizeCanvas();
+    window.addEventListener('resize', () => {
+        resizeCanvas();
+        draw();
+    });
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => { resizeCanvas(); draw(); }, 200);
+    });
 
     const COLORS = {
         I: '#00ffff', // Cyan
@@ -442,6 +476,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     restartButton.addEventListener('click', resetGame);
 
+    // Touch control buttons (mobile on-screen controls)
+    const tcLeft = document.getElementById('tc-left');
+    const tcRight = document.getElementById('tc-right');
+    const tcDown = document.getElementById('tc-down');
+    const tcRotate = document.getElementById('tc-rotate');
+    const tcHold = document.getElementById('tc-hold');
+    const tcDrop = document.getElementById('tc-drop');
+    if (tcLeft) tcLeft.addEventListener('touchstart', e => { e.preventDefault(); playerMove(-1); });
+    if (tcRight) tcRight.addEventListener('touchstart', e => { e.preventDefault(); playerMove(1); });
+    if (tcDown) tcDown.addEventListener('touchstart', e => { e.preventDefault(); playerDrop(); score += 1; });
+    if (tcRotate) tcRotate.addEventListener('touchstart', e => { e.preventDefault(); playerRotate(1); });
+    if (tcHold) tcHold.addEventListener('touchstart', e => { e.preventDefault(); holdPiece(); });
+    if (tcDrop) tcDrop.addEventListener('touchstart', e => { e.preventDefault(); hardDrop(); });
+
     // Controls
     document.addEventListener('keydown', event => {
         if (gameOver) return;
@@ -524,6 +572,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const tg = window.Telegram.WebApp;
         tg.ready();
+        // Try to expand to full screen inside Telegram in-app browser
+        if (typeof tg.expand === 'function') {
+            try { tg.expand(); } catch (e) { /* ignore */ }
+        }
         const user = tg.initDataUnsafe.user;
         if (user) {
             usernameElement.textContent = user.username || `${user.first_name} ${user.last_name || ''}`.trim();

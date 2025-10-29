@@ -145,4 +145,30 @@ body {
     .info-box p {
         font-size: 1.2em;
     }
+
+    /* Touch controls (visible on mobile) */
+    .touch-controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 8px;
+    }
+    .tc-btn {
+        background: rgba(0,0,0,0.6);
+        color: #0ff;
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 10px 12px;
+        font-size: 1.1em;
+        border-radius: 8px;
+        min-width: 48px;
+        box-shadow: 0 0 8px rgba(0,255,255,0.08);
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        touch-action: manipulation;
+    }
 }
+
+/* Desktop: hide touch controls */
+.touch-controls { display: none; }
