@@ -127,16 +127,24 @@ body {
         align-items: center;
         gap: 10px;
     }
-    .side-panel {
-        flex-direction: row;
-        flex-wrap: wrap;
+    .game-container {
         width: 100%;
-        max-width: 320px; /* Same as canvas width */
-        justify-content: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 6px 0;
+        box-sizing: border-box;
+    }
+    .side-panel {
+        flex-direction: column;
+        width: min(92vw, 420px);
+        align-items: center;
         gap: 10px;
+        margin-top: 8px;
     }
     .info-box {
-        flex-basis: 45%;
+        width: 100%;
+        max-width: 420px;
         padding: 8px;
     }
     .info-box h2 {
@@ -150,15 +158,23 @@ body {
     .touch-controls {
         display: flex;
         gap: 8px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         justify-content: center;
         margin-top: 8px;
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 14px;
+        z-index: 40;
+        background: rgba(0,0,0,0.18);
+        padding: 6px;
+        border-radius: 12px;
     }
     .tc-btn {
         background: rgba(0,0,0,0.6);
         color: #0ff;
         border: 1px solid rgba(255,255,255,0.08);
-        padding: 10px 12px;
+        padding: 12px 14px;
         font-size: 1.1em;
         border-radius: 8px;
         min-width: 48px;

@@ -30,17 +30,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const cellByHeight = Math.floor(maxHeight / ROWS);
         BLOCK_SIZE = Math.max(16, Math.min(cellByWidth || 32, cellByHeight || 32));
 
-        // Apply CSS pixel sizes
-        canvas.style.width = (COLS * BLOCK_SIZE) + 'px';
-        canvas.style.height = (ROWS * BLOCK_SIZE) + 'px';
+    // Apply CSS pixel sizes (use viewport-friendly width on small screens)
+    const cssWidth = Math.min(window.innerWidth * 0.92, COLS * BLOCK_SIZE);
+    canvas.style.width = cssWidth + 'px';
+    canvas.style.height = (cssWidth * (ROWS / COLS)) + 'px';
 
         // Set backing store size multiplied by DPR for crisp rendering
         canvas.width = Math.round(COLS * BLOCK_SIZE * DPR);
         canvas.height = Math.round(ROWS * BLOCK_SIZE * DPR);
         context.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-        // Next and hold canvases
-        const sideSize = 4 * BLOCK_SIZE;
+    // Next and hold canvases
+    const sideSize = 4 * BLOCK_SIZE;
         nextCanvas.style.width = sideSize + 'px';
         nextCanvas.style.height = sideSize + 'px';
         holdCanvas.style.width = sideSize + 'px';
