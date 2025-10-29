@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('tetris-canvas');
     const context = canvas.getContext('2d');
-    const nextCanvas = document.getElementById('next-canvas');
-    const nextContext = nextCanvas.getContext('2d');
+    const queueCanvas = document.getElementById('queue-canvas');
+    const queueContext = queueCanvas ? queueCanvas.getContext('2d') : null;
     const holdCanvas = document.getElementById('hold-canvas');
     const holdContext = holdCanvas.getContext('2d');
 
@@ -40,18 +40,25 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.height = Math.round(ROWS * BLOCK_SIZE * DPR);
         context.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-    // Next and hold canvases
+    // Queue and hold canvases
     const sideSize = 4 * BLOCK_SIZE;
-        nextCanvas.style.width = sideSize + 'px';
-        nextCanvas.style.height = sideSize + 'px';
+    if (queueCanvas) {
+        // queue canvas spans the width of the board (css) and has a fixed height
+        const cssQueueW = Math.min(window.innerWidth * 0.92, 760);
+        const cssQueueH = Math.max(80, Math.floor(BLOCK_SIZE * 2.2));
+        queueCanvas.style.width = cssQueueW + 'px';
+        queueCanvas.style.height = cssQueueH + 'px';
+        queueCanvas.width = Math.round(cssQueueW * DPR);
+        queueCanvas.height = Math.round(cssQueueH * DPR);
+        queueContext && queueContext.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
+    if (holdCanvas) {
         holdCanvas.style.width = sideSize + 'px';
         holdCanvas.style.height = sideSize + 'px';
-        nextCanvas.width = Math.round(sideSize * DPR);
-        nextCanvas.height = Math.round(sideSize * DPR);
-        nextContext.setTransform(DPR, 0, 0, DPR, 0, 0);
         holdCanvas.width = Math.round(sideSize * DPR);
         holdCanvas.height = Math.round(sideSize * DPR);
         holdContext.setTransform(DPR, 0, 0, DPR, 0, 0);
+    }
     }
 
     // Initial resize and attach handlers
@@ -286,26 +293,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function drawNextPiece() {
-        nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-        if (nextPieces.length > 0) {
-            const nextShape = nextPieces[0];
-            const piece = new Piece(nextShape, nextContext);
-            const matrix = piece.matrix;
-            const size = matrix.length;
-            const offsetX = (nextCanvas.width - size * BLOCK_SIZE) / 2;
-            const offsetY = (nextCanvas.height - size * BLOCK_SIZE) / 2;
-
-            nextContext.fillStyle = piece.color;
-            nextContext.shadowColor = piece.color;
-            nextContext.shadowBlur = 8;
-            matrix.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value) {
-                        nextContext.fillRect(offsetX + x * BLOCK_SIZE, offsetY + y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        // Render upcoming pieces into queueCanvas horizontally
+        if (!queueContext || !queueCanvas) return;
+        const DPR = window.devicePixelRatio || 1;
+        const w = queueCanvas.width / DPR;
+        const h = queueCanvas.height / DPR;
+        queueContext.clearRect(0, 0, queueCanvas.width, queueCanvas.height);
+        const visible = Math.min(nextPieces.length, 6);
+        const pad = 12;
+        const slotW = (w - pad * 2) / visible;
+        const cell = Math.floor(Math.min(slotW / 4, BLOCK_SIZE));
+        for (let i = 0; i < visible; i++) {
+            const shape = nextPieces[i];
+            const matrix = SHAPES[shape];
+            const cols = matrix[0].length;
+            const rows = matrix.length;
+            const startX = pad + i * slotW + Math.floor((slotW - cols * cell) / 2);
+            const startY = Math.floor((h - rows * cell) / 2);
+            queueContext.fillStyle = COLORS[shape];
+            queueContext.shadowColor = COLORS[shape];
+            queueContext.shadowBlur = 6;
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    if (matrix[y][x]) {
+                        queueContext.fillRect((startX + x * cell) * DPR, (startY + y * cell) * DPR, cell * DPR, cell * DPR);
                     }
-                });
-            });
-            nextContext.shadowBlur = 0;
+                }
+            }
+            queueContext.shadowBlur = 0;
         }
     }
 

@@ -8,40 +8,64 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="game-container">
-            <canvas id="tetris-canvas"></canvas>
-            <div id="game-over-overlay" class="hidden">
-                <div class="game-over-text">GAME OVER</div>
-                <button id="restart-button">Restart</button>
-                <button id="share-button">Share Score</button>
-            </div>
+    <header class="top-bar">
+        <div class="top-left">BEST <span id="best-score">0</span></div>
+        <div class="top-center">Spontaynee</div>
+        <div class="top-right">
+            <div class="current-score">SCORE <span id="score">0</span></div>
+            <button id="pause-button" aria-label="pause">▌▌</button>
         </div>
-        <div class="side-panel">
-            <div class="info-box">
-                <h2>SCORE</h2>
-                <p id="score">0</p>
+    </header>
+
+    <main class="container">
+        <section class="board-wrap">
+            <div class="game-container">
+                <canvas id="tetris-canvas"></canvas>
+                <div id="game-over-overlay" class="hidden">
+                    <div class="game-over-text">GAME OVER</div>
+                    <button id="restart-button">Restart</button>
+                    <button id="share-button">Share Score</button>
+                </div>
             </div>
-            <div class="info-box">
-                <h2>LINES</h2>
-                <p id="lines">0</p>
+
+            <div class="stats-stack">
+                <div class="info-box">
+                    <h2>SCORE</h2>
+                    <p id="score-dup">0</p>
+                </div>
+                <div class="info-box">
+                    <h2>LINES</h2>
+                    <p id="lines">0</p>
+                </div>
+                <div class="info-box">
+                    <h2>LEVEL</h2>
+                    <p id="level">1</p>
+                </div>
+                <div class="info-box hold-box">
+                    <h2>HOLD</h2>
+                    <canvas id="hold-canvas"></canvas>
+                </div>
             </div>
-            <div class="info-box">
-                <h2>LEVEL</h2>
-                <p id="level">1</p>
-            </div>
-            <div class="info-box">
-                <h2>NEXT</h2>
-                <canvas id="next-canvas"></canvas>
-            </div>
-            <div class="info-box">
-                <h2>HOLD</h2>
-                <canvas id="hold-canvas"></canvas>
-            </div>
-            <div class="info-box">
-                <p>Player: <span id="username">guest</span></p>
-            </div>
+
+        </section>
+
+        <section class="queue-wrap">
+            <h3 class="queue-title">NEXT</h3>
+            <canvas id="queue-canvas"></canvas>
+        </section>
+
+        <div class="player-info">Player: <span id="username">guest</span></div>
+
+        <!-- Touch controls for mobile devices -->
+        <div class="touch-controls" aria-hidden="false">
+            <button id="tc-left" class="tc-btn" aria-label="move left">◀</button>
+            <button id="tc-right" class="tc-btn" aria-label="move right">▶</button>
+            <button id="tc-down" class="tc-btn" aria-label="soft drop">▼</button>
+            <button id="tc-rotate" class="tc-btn" aria-label="rotate">⟳</button>
+            <button id="tc-hold" class="tc-btn" aria-label="hold">☐</button>
+            <button id="tc-drop" class="tc-btn" aria-label="hard drop">⇩</button>
         </div>
+    </main>
         <!-- Touch controls for mobile devices -->
         <div class="touch-controls" aria-hidden="false">
             <button id="tc-left" class="tc-btn" aria-label="move left">◀</button>
