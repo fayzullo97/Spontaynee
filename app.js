@@ -23,14 +23,12 @@
 	const cvs = document.getElementById('gameCanvas');
 	const holdCanvas = document.getElementById('holdCanvas');
 	const nextCanvases = [document.getElementById('next0'), document.getElementById('next1'), document.getElementById('next2')];
-	const bestEl = document.getElementById('bestScore');
-	const scoreEl = document.getElementById('score');
-	const levelEl = document.getElementById('level');
+		const bestEl = document.getElementById('bestScore');
+		const scoreEl = document.getElementById('score');
 	const overlay = document.getElementById('overlay');
 	const playerNameEl = document.getElementById('playerName');
 
-	const btnStart = document.getElementById('btnStart');
-	const btnPause = document.getElementById('btnPause');
+		const btnPause = document.getElementById('btnPause');
 	const btnShare = document.getElementById('btnShare');
 
 	// Canvas contexts
@@ -47,13 +45,13 @@
 	let score = 0;
 	let best = parseInt(localStorage.getItem('neonTetris_best')||'0',10);
 	let lines = 0;
-	let level = 1;
+		let level = 1;
 	let dropAccumulator = 0;
 	let lastTime = 0;
 	let paused = false;
 	let running = false;
 
-	bestEl.textContent = `Best: ${best}`;
+		bestEl.textContent = `Best: ${best}`;
 
 	// Colors (neon palette)
 	const COLORS = {
@@ -424,7 +422,7 @@
 		requestAnimationFrame(tick);
 	}
 
-	function updateUI(){ scoreEl.textContent = `Score: ${score}`; levelEl.textContent = `Level: ${level}`; }
+		function updateUI(){ scoreEl.textContent = `Score: ${score}`; }
 
 	// Input
 	document.addEventListener('keydown', e=>{
@@ -471,8 +469,7 @@
 	function renderPreviews(){ drawPreview(holdCtx, hold); for(let i=0;i<3;i++) drawPreview(nextCtxs[i], queue[i]||null); }
 
 	// Buttons
-	btnStart.addEventListener('click', ()=>{ startGame(); });
-	btnPause.addEventListener('click', ()=>{ paused = !paused; btnPause.textContent = paused? 'Resume':'Pause'; });
+		btnPause.addEventListener('click', ()=>{ paused = !paused; btnPause.textContent = paused? 'Resume':'Pause'; });
 	btnShare.addEventListener('click', ()=>{ shareScore(); });
 
 	function shareScore(){
@@ -485,7 +482,7 @@
 	}
 
 	// Start game
-	function startGame(){
+		function startGame(){
 		board = createMatrix(ROWS,COLS); queue = []; refillBag(); for(let i=0;i<7;i++) queue.push(nextPiece()); spawn(); score=0; lines=0; level=1; running=true; paused=false; overlay.classList.add('hidden'); lastTime=0; requestAnimationFrame(tick); renderPreviews(); if(window.Telegram && Telegram.WebApp){ try{ Telegram.WebApp.sendData(JSON.stringify({type:'start'})); }catch(e){} }
 	}
 
@@ -495,9 +492,11 @@
 		catch(e){}
 	}
 
-	// initial resize and draw
-	window.addEventListener('resize', ()=>{ resize(); draw(); });
-	resize(); draw(); renderPreviews();
+		// initial resize, draw and auto-start
+		window.addEventListener('resize', ()=>{ resize(); draw(); });
+		resize(); draw(); renderPreviews();
+		// Auto-start the game as requested
+		startGame();
 
 	// Expose minimal API for debugging
 	window.NeonTetris = { start: startGame, pause: ()=>paused=!paused, hardDrop, softDrop, rotate: ()=>rotatePiece(1) };

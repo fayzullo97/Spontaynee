@@ -6,7 +6,8 @@
 html,body,#ui{height:100%;}
 body{background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#e6f0ff;display:flex;align-items:center;justify-content:center;padding:8px}
 .mobile-portrait{width:100%;max-width:760px}
-.top-row{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
+.top-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.top-mid{display:flex;align-items:center;gap:8px}
 .stat{flex:1;text-align:center;padding:8px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);box-shadow:0 4px 18px rgba(0,0,0,0.6);font-weight:700;color:#cfe9ff}
 .stat.neon{border:1px solid rgba(120,190,255,0.06);filter:drop-shadow(0 0 6px rgba(110,200,255,0.06));}
 .player-row{display:flex;gap:12px}
@@ -24,6 +25,7 @@ canvas#gameCanvas{background:transparent;border-radius:14px;box-shadow:0 6px 40p
 .bottom-row{margin-top:10px;display:flex;justify-content:center}
 .controls{display:flex;gap:8px}
 .neon-btn{padding:8px 14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.006));border:1px solid rgba(140,190,255,0.08);color:#dff6ff;font-weight:700;box-shadow:0 6px 22px rgba(0,0,0,0.6);}
+.neon-btn.top-pause{padding:6px 10px;font-size:14px}
 .overlay{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center}
 .overlay .game-over{padding:18px 28px;border-radius:10px;background:linear-gradient(90deg,#2b0006,#6b0011);color:#ffccd5;font-size:28px;font-weight:900;text-shadow:0 0 10px rgba(255,50,75,0.6);box-shadow:0 14px 60px rgba(255,40,50,0.08);animation:flicker 1.2s infinite}
 .hidden{display:none}

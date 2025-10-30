@@ -9,11 +9,13 @@
 	</head>
 	<body>
 		<div id="ui" class="mobile-portrait">
-			<div class="top-row">
-				<div class="stat neon" id="bestScore">Best: 0</div>
-				<div class="stat neon" id="score">Score: 0</div>
-				<div class="stat neon" id="level">Level: 1</div>
-			</div>
+					<div class="top-row">
+						<div class="stat neon" id="bestScore">Best: 0</div>
+						<div class="top-mid">
+							<div class="stat neon" id="score">Score: 0</div>
+							<button id="btnPause" class="neon-btn top-pause">Pause</button>
+						</div>
+					</div>
 
 			<div class="player-row">
 				<div class="left-panel">
@@ -46,13 +48,11 @@
 				</div>
 			</div>
 
-			<div class="bottom-row">
-				<div class="controls">
-					<button id="btnStart" class="neon-btn">Start</button>
-					<button id="btnPause" class="neon-btn">Pause</button>
-					<button id="btnShare" class="neon-btn">Share</button>
-				</div>
-			</div>
+					<div class="bottom-row">
+						<div class="controls">
+							<button id="btnShare" class="neon-btn">Share</button>
+						</div>
+					</div>
 		</div>
 
 		<script src="app.js" defer></script>
