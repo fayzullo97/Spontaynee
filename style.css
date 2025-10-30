@@ -7,6 +7,9 @@
   --glass: rgba(255,255,255,0.05);
   --panel: rgba(10,10,20,0.55);
   --radius:12px;
+  --header-h:64px; /* approximate header height used for fullscreen calc */
+  --queue-h:110px; /* queue area height */
+  --hud-h:88px; /* bottom HUD height */
 }
 
 *{box-sizing:border-box}
@@ -24,13 +27,13 @@ body{
   width:100%;max-width:980px;display:flex;justify-content:space-between;align-items:center;
   padding:10px 14px;gap:12px;
 }
-.top-left,.top-center,.top-right{display:flex;align-items:center;gap:8px}
-.top-left span,.current-score span{display:inline-block;margin-left:8px;color:var(--neon);text-shadow:0 0 8px rgba(0,255,255,0.18)}
-.top-center{font-size:1.25rem;letter-spacing:1px;color:#9ff;text-shadow:0 0 10px rgba(0,255,255,0.08)}
+.top-left,.top-middle,.top-right{display:flex;align-items:center;gap:8px}
+.top-left span,.top-middle span{display:inline-block;margin-left:8px;color:var(--neon);text-shadow:0 0 8px rgba(0,255,255,0.18)}
+.top-middle{font-size:1rem;letter-spacing:0.5px;color:#9ff}
 .top-right{gap:10px}
 
 /* overall app layout */
-.app{width:100%;max-width:980px;padding:6px 12px 48px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.app{width:100%;max-width:980px;padding:6px 12px 48px;display:flex;flex-direction:column;align-items:center;gap:12px;flex:1}
 
 /* play area */
 .play-area{display:flex;flex-direction:row;gap:12px;align-items:flex-start; width: 100%; max-width: 920px; justify-content:center}
@@ -57,8 +60,8 @@ body{
 #queue{border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));box-shadow:0 10px 30px rgba(0,0,0,0.6);touch-action:none}
 
 /* bottom HUD */
-.touch-hud{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;display:flex;gap:8px;padding:8px;border-radius:18px;background:rgba(0,0,0,0.18);z-index:50}
-.touch-hud button{background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.06);color:var(--neon);padding:10px;border-radius:10px;min-width:44px;font-size:1rem;box-shadow:0 6px 18px rgba(0,255,255,0.04)}
+.touch-hud{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;display:flex;gap:12px;padding:10px;border-radius:18px;background:rgba(0,0,0,0.18);z-index:50}
+.touch-hud button{background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.06);color:var(--neon);padding:12px;border-radius:12px;min-width:54px;font-size:1.05rem;box-shadow:0 6px 18px rgba(0,255,255,0.04)}
 
 /* responsive rules - portrait-first */
 @media (max-width:900px){
@@ -67,7 +70,8 @@ body{
   .stats-vertical{order:2;width:auto}
   .hold-box{order:1}
   #queue{width:92vw;height:88px;max-width:720px}
-  #board{width:92vw;height:calc(92vw * 2) /* 10x20 ratio */;max-width:420px;max-height:840px}
+  /* make the board fill available height but keep 10:20 ratio where possible */
+  #board{width:min(92vw,420px);height:calc(100vh - var(--header-h) - var(--queue-h) - var(--hud-h) - 28px);max-width:420px;}
 }
 
 /* desktop adjustments */

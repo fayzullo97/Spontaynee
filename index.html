@@ -9,12 +9,10 @@
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
 </head>
 <body>
-  <header class="top-bar" role="banner" aria-label="Neon Tetris header">
+  <header class="top-bar" role="banner" aria-label="Game header">
     <div class="top-left"><strong>BEST</strong><span id="best-score">0</span></div>
-    <div class="top-center">Neon Tetris</div>
+    <div class="top-middle"><strong>SCORE</strong><span id="score">0</span></div>
     <div class="top-right">
-      <div class="current-score"><strong>SCORE</strong><span id="score">0</span></div>
-      <div class="current-level"><strong>LVL</strong><span id="level">1</span></div>
       <button id="pause-button" aria-label="Pause">▌▌</button>
     </div>
   </header>
@@ -49,11 +47,8 @@
       <canvas id="queue" aria-label="Next pieces queue"></canvas>
     </section>
 
-    <!-- bottom HUD (touch buttons) -->
+    <!-- bottom HUD (touch buttons) - simplified: down / hard drop / hold -->
     <nav class="touch-hud" aria-hidden="false">
-      <button id="btn-left" aria-label="Left">◀</button>
-      <button id="btn-rotate" aria-label="Rotate">⟳</button>
-      <button id="btn-right" aria-label="Right">▶</button>
       <button id="btn-down" aria-label="Soft drop">▼</button>
       <button id="btn-drop" aria-label="Hard drop">⇩</button>
       <button id="btn-hold" aria-label="Hold">☐</button>

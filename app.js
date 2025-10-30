@@ -19,9 +19,7 @@
   const pauseBtn = document.getElementById('pause-button');
 
   // touch hud buttons
-  const btnLeft = document.getElementById('btn-left');
-  const btnRight = document.getElementById('btn-right');
-  const btnRotate = document.getElementById('btn-rotate');
+  // touch hud buttons (note: direction/rotate buttons removed for simpler HUD)
   const btnDown = document.getElementById('btn-down');
   const btnDrop = document.getElementById('btn-drop');
   const btnHold = document.getElementById('btn-hold');
@@ -431,14 +429,12 @@
       el.addEventListener('touchstart', (ev)=>{ ev.preventDefault(); fn(); }, {passive:false});
       el.addEventListener('mousedown', (ev)=>{ ev.preventDefault(); fn(); });
     };
-    bindTouch(btnLeft, ()=>move(-1));
-    bindTouch(btnRight, ()=>move(1));
-    bindTouch(btnRotate, ()=>rotate(1));
+  // directional movement now uses gestures and keyboard; HUD keeps drop/hold
     bindTouch(btnDown, ()=>softDrop());
     bindTouch(btnDrop, ()=>hardDrop());
     bindTouch(btnHold, ()=>hold());
 
-    // gestures on board: tap to rotate, swipe left/right to move, swipe down soft drop, long press hard drop
+  // gestures on board: tap to rotate, swipe left/right to move, swipe down soft drop, long press hard drop
     let tstartX=0,tstartY=0,tstartTime=0,longPressTimer=null;
     boardCanvas.addEventListener('touchstart', (e)=>{
       if(e.touches.length>1) return;
@@ -462,6 +458,9 @@
       // quick tap => rotate
       if(Math.abs(dx)<10 && Math.abs(dy)<10 && dt<250) rotate(1);
     }, {passive:false});
+
+    // single mouse click / pointer click rotates as well (desktop & in-app click)
+    boardCanvas.addEventListener('click', ()=>{ rotate(1); });
 
     // restart/share buttons
     restartBtn.addEventListener('click', ()=>{ init(true); });
