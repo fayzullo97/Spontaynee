@@ -1,86 +1,34 @@
-/* Neon Tetris - responsive, mobile-first */
+/* Neon Tetris styles - mobile first */
 :root{
-  --bg1:#081024;
-  --bg2:#1b1436;
-  --neon:#0ff;
-  --accent:#ff5a5a;
-  --glass: rgba(255,255,255,0.05);
-  --panel: rgba(10,10,20,0.55);
-  --radius:12px;
-  --header-h:64px; /* approximate header height used for fullscreen calc */
-  --queue-h:110px; /* queue area height */
-  --hud-h:88px; /* bottom HUD height */
+	--bg1:#071033; --bg2:#0b1433; --neon:#6cf; --glass:rgba(255,255,255,0.03);
 }
-
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family: 'VT323', monospace, system-ui; -webkit-font-smoothing:antialiased}
-body{
-  background: radial-gradient(1200px 800px at 10% 10%, rgba(40,20,80,0.25), transparent),
-              linear-gradient(180deg,var(--bg1),var(--bg2));
-  color:#e6fbff;
-  display:flex;flex-direction:column;align-items:center;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* header */
-.top-bar{
-  width:100%;max-width:980px;display:flex;justify-content:space-between;align-items:center;
-  padding:10px 14px;gap:12px;
-}
-.top-left,.top-middle,.top-right{display:flex;align-items:center;gap:8px}
-.top-left span,.top-middle span{display:inline-block;margin-left:8px;color:var(--neon);text-shadow:0 0 8px rgba(0,255,255,0.18)}
-.top-middle{font-size:1rem;letter-spacing:0.5px;color:#9ff}
-.top-right{gap:10px}
-
-/* overall app layout */
-.app{width:100%;max-width:980px;padding:6px 12px 48px;display:flex;flex-direction:column;align-items:center;gap:12px;flex:1}
-
-/* play area */
-.play-area{display:flex;flex-direction:row;gap:12px;align-items:flex-start; width: 100%; max-width: 920px; justify-content:center}
-.board-wrap{position:relative; background:linear-gradient(180deg,rgba(0,0,0,0.15),rgba(0,0,0,0.25)); padding:10px; border-radius:var(--radius); box-shadow: 0 10px 40px rgba(0,0,0,0.6);}
-#board{display:block;background:#000;border-radius:8px;touch-action:none;}
-
-/* overlay */
-.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);border-radius:8px}
-.game-over-text{color:#ff3b3b;font-size:2.4rem;text-shadow:0 0 12px #ff3b3b,0 0 28px rgba(255,60,60,0.3);animation:flicker 1s linear}
-.overlay-actions{display:flex;gap:12px;margin-top:14px}
-.overlay-actions button{background:var(--panel);color:#fff;padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.04)}
-
-/* stats + hold */
-.stats-and-hold{display:flex;flex-direction:column;gap:10px;align-items:center;width:140px}
-.hold-box{width:140px;text-align:center;background:var(--panel);padding:8px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
-.small-canvas{width:100%;height:80px;border-radius:8px;background:rgba(0,0,0,0.35)}
-
-.stats-vertical{display:flex;flex-direction:column;gap:8px;width:140px}
-.stat{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;text-align:center}
-.stat label{display:block;font-size:0.8rem;color:#bfe}
-
-/* queue area (full-width previews under board) */
-.queue-area{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px}
-#queue{border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));box-shadow:0 10px 30px rgba(0,0,0,0.6);touch-action:none}
-
-/* bottom HUD */
-.touch-hud{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;display:flex;gap:12px;padding:10px;border-radius:18px;background:rgba(0,0,0,0.18);z-index:50}
-.touch-hud button{background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.06);color:var(--neon);padding:12px;border-radius:12px;min-width:54px;font-size:1.05rem;box-shadow:0 6px 18px rgba(0,255,255,0.04)}
-
-/* responsive rules - portrait-first */
-@media (max-width:900px){
-  .play-area{flex-direction:column;align-items:center}
-  .stats-and-hold{flex-direction:row;gap:12px;width:92%;justify-content:center}
-  .stats-vertical{order:2;width:auto}
-  .hold-box{order:1}
-  #queue{width:92vw;height:88px;max-width:720px}
-  /* make the board fill available height but keep 10:20 ratio where possible */
-  #board{width:min(92vw,420px);height:calc(100vh - var(--header-h) - var(--queue-h) - var(--hud-h) - 28px);max-width:420px;}
-}
-
-/* desktop adjustments */
-@media (min-width:901px){
-  #queue{height:96px;width:680px}
-  #board{width:420px;height:840px}
-}
-
-/* small UI niceties */
-button:active{transform:translateY(1px)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, 'Helvetica Neue', Arial;}
+html,body,#ui{height:100%;}
+body{background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#e6f0ff;display:flex;align-items:center;justify-content:center;padding:8px}
+.mobile-portrait{width:100%;max-width:760px}
+.top-row{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
+.stat{flex:1;text-align:center;padding:8px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);box-shadow:0 4px 18px rgba(0,0,0,0.6);font-weight:700;color:#cfe9ff}
+.stat.neon{border:1px solid rgba(120,190,255,0.06);filter:drop-shadow(0 0 6px rgba(110,200,255,0.06));}
+.player-row{display:flex;gap:12px}
+.left-panel,.right-panel{width:22%;display:flex;flex-direction:column;align-items:center}
+.center-panel{width:56%;display:flex;flex-direction:column;align-items:center}
+.preview-box{width:100%;padding:8px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;flex-direction:column;align-items:center}
+.preview-box .label{font-size:12px;color:#9fc7ff;margin-bottom:6px}
+.preview-canvas{background:transparent;border-radius:8px}
+.next-list{display:flex;flex-direction:column;gap:6px}
+.title-row{display:flex;justify-content:space-between;align-items:center;width:100%;margin-bottom:8px}
+.title{font-weight:800;letter-spacing:2px;color:#d6f0ff;text-shadow:0 0 10px rgba(150,220,255,0.12);}
+.player-name{font-size:12px;color:#9ccfff}
+.canvas-wrap{width:100%;display:flex;justify-content:center}
+canvas#gameCanvas{background:transparent;border-radius:14px;box-shadow:0 6px 40px rgba(20,40,90,0.6), inset 0 0 60px rgba(80,160,255,0.02);touch-action:none}
+.bottom-row{margin-top:10px;display:flex;justify-content:center}
+.controls{display:flex;gap:8px}
+.neon-btn{padding:8px 14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.006));border:1px solid rgba(140,190,255,0.08);color:#dff6ff;font-weight:700;box-shadow:0 6px 22px rgba(0,0,0,0.6);}
+.overlay{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center}
+.overlay .game-over{padding:18px 28px;border-radius:10px;background:linear-gradient(90deg,#2b0006,#6b0011);color:#ffccd5;font-size:28px;font-weight:900;text-shadow:0 0 10px rgba(255,50,75,0.6);box-shadow:0 14px 60px rgba(255,40,50,0.08);animation:flicker 1.2s infinite}
 .hidden{display:none}
-@keyframes flicker{0%{opacity:0.95}50%{opacity:1}100%{opacity:0.97}}
+@keyframes flicker{0%{opacity:1}50%{opacity:0.85}100%{opacity:1}}
+
+/* responsive adjustments */
+@media(min-width:900px){ .left-panel,.right-panel{width:20%} .center-panel{width:60%} }
+

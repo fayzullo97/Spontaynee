@@ -1,22 +1,16 @@
-const CACHE = 'neon-tetris-v1';
-const ASSETS = [
-  '/', '/index.html', '/style.css', '/app.js'
-];
+// Simple service worker for offline caching
+const CACHE_NAME = 'neon-tetris-v1';
+const ASSETS = [ '/', '/index.html', '/app.js', '/style.css' ];
 
-// install
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+self.addEventListener('install', ev=>{
+  ev.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).catch(()=>{}));
   self.skipWaiting();
 });
-self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
 
-// fetch
-self.addEventListener('fetch', e => {
-  const req = e.request;
-  if(req.method !== 'GET') return;
-  e.respondWith(caches.match(req).then(resp => resp || fetch(req).then(r => {
-    const rClone = r.clone();
-    caches.open(CACHE).then(c => c.put(req, rClone));
-    return r;
-  })).catch(()=> caches.match('/index.html')));
+self.addEventListener('activate', ev=>{
+  ev.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('fetch', ev=>{
+  ev.respondWith(caches.match(ev.request).then(r=>r || fetch(ev.request).then(resp=>{ const clone = resp.clone(); if(ev.request.method==='GET' && resp && resp.type!=='opaque'){ caches.open(CACHE_NAME).then(c=>c.put(ev.request, clone)); } return resp; }).catch(()=>caches.match('/index.html'))));
 });

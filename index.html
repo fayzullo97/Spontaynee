@@ -1,65 +1,66 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Neon Tetris</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- Telegram Web App SDK (optional - loaded in Telegram only) -->
-  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
-</head>
-<body>
-  <header class="top-bar" role="banner" aria-label="Game header">
-    <div class="top-left"><strong>BEST</strong><span id="best-score">0</span></div>
-    <div class="top-middle"><strong>SCORE</strong><span id="score">0</span></div>
-    <div class="top-right">
-      <button id="pause-button" aria-label="Pause">▌▌</button>
-    </div>
-  </header>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1" />
+		<meta name="theme-color" content="#071033" />
+		<title>Neon Tetris</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<div id="ui" class="mobile-portrait">
+			<div class="top-row">
+				<div class="stat neon" id="bestScore">Best: 0</div>
+				<div class="stat neon" id="score">Score: 0</div>
+				<div class="stat neon" id="level">Level: 1</div>
+			</div>
 
-  <main class="app" role="main">
-    <section class="play-area">
-      <div class="board-wrap" aria-hidden="false">
-        <canvas id="board" aria-label="Tetris playfield"></canvas>
-        <div id="game-over" class="overlay hidden" role="dialog" aria-live="polite">
-          <div class="game-over-text">GAME OVER</div>
-          <div class="overlay-actions">
-            <button id="restart">Restart</button>
-            <button id="share">Share</button>
-          </div>
-        </div>
-      </div>
+			<div class="player-row">
+				<div class="left-panel">
+					<div class="preview-box neon-outer">
+						<div class="label">Hold</div>
+						<canvas id="holdCanvas" class="preview-canvas" width="120" height="120"></canvas>
+					</div>
+				</div>
 
-      <div class="stats-and-hold">
-        <div class="hold-box" aria-hidden="false">
-          <h4>HOLD</h4>
-          <canvas id="hold" class="small-canvas" aria-label="Hold piece"></canvas>
-        </div>
-        <div class="stats-vertical">
-          <div class="stat"><label>Lines</label><div id="lines">0</div></div>
-          <div class="stat"><label>Level</label><div id="level-dup">1</div></div>
-        </div>
-      </div>
-    </section>
+				<div class="center-panel">
+					<div class="title-row">
+						<div class="title">NEON TETRIS</div>
+						<div id="playerName" class="player-name"></div>
+					</div>
+					<div class="canvas-wrap">
+						<canvas id="gameCanvas" tabindex="0"></canvas>
+						<div id="overlay" class="overlay hidden"></div>
+					</div>
+				</div>
 
-    <section class="queue-area" aria-label="Upcoming pieces">
-      <h4 class="queue-title">NEXT</h4>
-      <canvas id="queue" aria-label="Next pieces queue"></canvas>
-    </section>
+				<div class="right-panel">
+					<div class="preview-box neon-outer">
+						<div class="label">Next</div>
+						<div class="next-list">
+							<canvas class="preview-canvas" id="next0" width="120" height="120"></canvas>
+							<canvas class="preview-canvas" id="next1" width="120" height="120"></canvas>
+							<canvas class="preview-canvas" id="next2" width="120" height="120"></canvas>
+						</div>
+					</div>
+				</div>
+			</div>
 
-    <!-- bottom HUD (touch buttons) - simplified: down / hard drop / hold -->
-    <nav class="touch-hud" aria-hidden="false">
-      <button id="btn-down" aria-label="Soft drop">▼</button>
-      <button id="btn-drop" aria-label="Hard drop">⇩</button>
-      <button id="btn-hold" aria-label="Hold">☐</button>
-    </nav>
-  </main>
+			<div class="bottom-row">
+				<div class="controls">
+					<button id="btnStart" class="neon-btn">Start</button>
+					<button id="btnPause" class="neon-btn">Pause</button>
+					<button id="btnShare" class="neon-btn">Share</button>
+				</div>
+			</div>
+		</div>
 
-  <script src="app.js" defer></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(()=>{/*sw registration fail*/});
-    }
-  </script>
-</body>
+		<script src="app.js" defer></script>
+		<script>
+			if ('serviceWorker' in navigator) {
+				navigator.serviceWorker.register('sw.js').catch(()=>{});
+			}
+		</script>
+	</body>
 </html>
+
